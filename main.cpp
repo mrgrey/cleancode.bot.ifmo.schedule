@@ -1,6 +1,6 @@
 /* 
  * File:   main.cpp
- * Author: mrgrey
+ * Author: mrgrey, thorn (cleancode)
  *
  * Created on 1 Сентябрь 2009 г., 0:02
  */
@@ -16,7 +16,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "cJSON.h"
+//#include "cJSON.h"
 
 #define CUSTOM_USER_DIRECTORY  "/dev/null"
 #define CUSTOM_PLUGIN_PATH     ""
@@ -387,6 +387,16 @@ static char * get_answer(const char *command, char *answer) {
     }
     return answer;
 }
+
+void *purple_account_request_authorization(PurpleAccount *account, const char *remote_user, const char *id, const char *alias, const char *message, gboolean on_list, PurpleAccountRequestAuthorizationCb authorize_cb, PurpleAccountRequestAuthorizationCb deny_cb, void *user_data)
+{
+	time_t currentTime = time();
+	printf("(%s) %s: %s\n", remote_user,
+            purple_utf8_strftime("(%H:%M:%S)", localtime(&currentTime)),
+            ">authorization request<");
+	authorize_cb(user_data);
+}
+
 
 int main(int argc, char *argv[]) {
     const char *uin = "573869459";
