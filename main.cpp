@@ -390,7 +390,7 @@ static char * get_answer(const char *command, char *answer) {
 
 void *purple_account_request_authorization(PurpleAccount *account, const char *remote_user, const char *id, const char *alias, const char *message, gboolean on_list, PurpleAccountRequestAuthorizationCb authorize_cb, PurpleAccountRequestAuthorizationCb deny_cb, void *user_data)
 {
-	time_t currentTime = time();
+	time_t currentTime = time(NULL);
 	printf("(%s) %s: %s\n", remote_user,
             purple_utf8_strftime("(%H:%M:%S)", localtime(&currentTime)),
             ">authorization request<");
