@@ -380,9 +380,9 @@ static char * get_answer(const char *command, char *answer) {
         time(&rawtime);
         struct tm *timeinfo = localtime(&rawtime);
         sprintf(answer, "Date and time: %s", asctime(timeinfo));
-	} else if(strcmp(command, "help")) {
-		strcat(answer, "Список доступных комманд:\n"
-						" schedule - выводит расписание для группы 4512\n"
+	} else if(!strcmp(command, "help")) {
+		strcat(answer, 	"Список доступных комманд:<br>"
+						" schedule - выводит расписание для группы 4512<br>"
 						" schedule %group_number% - выводит расписание для группы %group_number%<br>"
 						" time - выводит текущее время и дату<br>"
 						" date - выводит текущее время и дату<br>"
