@@ -403,9 +403,7 @@ static char * get_answer(const char *command, char *answer) {
 			int lessons = parse_json(out, &data);
 		
 		if(lessons == -1){
-			sprintf(answer, "День: %d, Номер учебной недели: %d",
-				data.day, data.week_number);
-			strcat(answer, "<br>Недопустимый номер группы");
+			strcat(answer, "Недопустимый номер группы");
 		}else if(lessons == 0){
 			sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
 			strcat(answer, "<br>Нет занятий");
