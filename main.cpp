@@ -381,7 +381,7 @@ static char * get_answer(const char *command, char *answer) {
         struct tm *timeinfo = localtime(&rawtime);
         sprintf(answer, "Date and time: %s", asctime(timeinfo));
 	} else if(!strcmp(command, "help")) {
-		strcat(answer, 	"Список доступных комманд:<br>"
+		strcpy(answer, 	"Список доступных комманд:<br>"
 						" schedule - выводит расписание для группы 4512<br>"
 						" schedule %group_number% - выводит расписание для группы %group_number%<br>"
 						" time - выводит текущее время и дату<br>"
@@ -403,7 +403,7 @@ static char * get_answer(const char *command, char *answer) {
 			int lessons = parse_json(out, &data);
 		
 		if(lessons == -1){
-			strcat(answer, "Недопустимый номер группы");
+			strcpy(answer, "Недопустимый номер группы");
 		}else if(lessons == 0){
 			sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
 			strcat(answer, "<br>Нет занятий");
