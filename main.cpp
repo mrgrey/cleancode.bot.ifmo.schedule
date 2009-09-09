@@ -1,4 +1,4 @@
-/* 
+﻿/* 
  * File:   main.cpp
  * Author: mrgrey, thorn (cleancode)
  *
@@ -380,39 +380,47 @@ static char * get_answer(const char *command, char *answer) {
         time(&rawtime);
         struct tm *timeinfo = localtime(&rawtime);
         sprintf(answer, "Date and time: %s", asctime(timeinfo));
+	} else if(strcmp(command, "help")) {
+		strcat(answer, "Список доступных комманд:\n"
+						" schedule - выводит расписание для группы 4512\n"
+						" schedule %group_number% - выводит расписание для группы %group_number%<br>"
+						" time - выводит текущее время и дату<br>"
+						" date - выводит текущее время и дату<br>"
+						" help - выводит это сообщение<br>"
+		);
     } else if(strstr(command, "schedule") == command && (!command[8] || command[8] == ' ')) {
-	int groupNumber = 4512;
-	
-	if(command[8] == ' '){
-		if(atoi(&command[9])){
-			groupNumber = atoi(&command[9]);
-		}
-	}
-        char buffer[5120], out[5120];
-        get_schedule_json(groupNumber, &buffer[0]);
-        decode_utf_literals(&buffer[0], &out[0]);
-        data data;
-        int lessons = parse_json(out, &data);
-	
-	if(lessons == -1){
-		sprintf(answer, "�~Tен�~L: %d, �~]оме�~@ �~C�~Gебной недели: %d, �~S>",
-			data.day, data.week_number);
-		strcat(answer, "wrong group number");
-	}else if(lessons == 0){
-		sprintf(answer, "�~Tен�~L: %d, �~]оме�~@ �~C�~Gебной недели: %d, �~S�~@�~Cппа: %d<br><br>", data.day, data.week_number, data.group);
-		strcat(answer, "\nno lessons");
-	}else{
-		sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
-
-        	sprintf(answer, "%s_______________________________<br>", answer);
-	        for(int i = 0; i < lessons - 1; i++) {
-			if(i){
-				sprintf(answer, "%s_______________________________<br>", answer);
+		int groupNumber = 4512;
+		
+		if(command[8] == ' '){
+			if(atoi(&command[9])){
+				groupNumber = atoi(&command[9]);
 			}
-			    sprintf(answer, "%s%s %s - %s<br>%s<br>", answer, data.lessons[i].time, data.lessons[i].place, data.lessons[i].person_name, data.lessons[i].subject);
-		            //sprintf(answer, "%s_______________________________<br>", answer);
-	        }
-	}
+		}
+			char buffer[5120], out[5120];
+			get_schedule_json(groupNumber, &buffer[0]);
+			decode_utf_literals(&buffer[0], &out[0]);
+			data data;
+			int lessons = parse_json(out, &data);
+		
+		if(lessons == -1){
+			sprintf(answer, "День: %d, Номер учебной недели: %d",
+				data.day, data.week_number);
+			strcat(answer, "\nНедопустимый номер группы");
+		}else if(lessons == 0){
+			sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
+			strcat(answer, "\nНет занятий");
+		}else{
+			sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
+
+				sprintf(answer, "%s_______________________________<br>", answer);
+				for(int i = 0; i < lessons - 1; i++) {
+				if(i){
+					sprintf(answer, "%s_______________________________<br>", answer);
+				}
+					sprintf(answer, "%s%s %s - %s<br>%s<br>", answer, data.lessons[i].time, data.lessons[i].place, data.lessons[i].person_name, data.lessons[i].subject);
+						//sprintf(answer, "%s_______________________________<br>", answer);
+				}
+		}
     } else if(!strcmp(command, "hello")) {
         sprintf(answer, "%s", "1<br>2<br>3<br>hello!");
     } else if(!strcmp(command, "table")) {
