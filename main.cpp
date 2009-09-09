@@ -309,6 +309,20 @@ typedef struct {
 
 static int parse_json(const char *json_data, data *data) {
     char *startptr, *endptr;
+    startptr = strstr(json_data, "status");
+    switch(startptr[9])
+    {
+        case 'w':
+            return -1;
+            break;
+        case 'n':
+            return 0;
+            break;
+	case 's':
+            break;
+    }
+    
+
     startptr = strstr(json_data, "week_number");
     data->week_number = (int)strtol(startptr+13,NULL,10);
     startptr = strstr(startptr, "day");
@@ -366,18 +380,39 @@ static char * get_answer(const char *command, char *answer) {
         time(&rawtime);
         struct tm *timeinfo = localtime(&rawtime);
         sprintf(answer, "Date and time: %s", asctime(timeinfo));
-    } else if(!strcmp(command, "schedule")) {
+    } else if(strstr(command, "schedule") == command && (!command[8] || command[8] == ' ')) {
+	int groupNumber = 4512;
+	
+	if(command[8] == ' '){
+		if(atoi(&command[9])){
+			groupNumber = atoi(&command[9]);
+		}
+	}
         char buffer[5120], out[5120];
-        get_schedule_json(4512, &buffer[0]);
+        get_schedule_json(groupNumber, &buffer[0]);
         decode_utf_literals(&buffer[0], &out[0]);
         data data;
         int lessons = parse_json(out, &data);
-        sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
-        sprintf(answer, "%s_______________________________<br>", answer);
-        for(int i = 0; i < lessons - 1; i++) {
-            sprintf(answer, "%s%s %s - %s<br>%s<br>", answer, data.lessons[i].time, data.lessons[i].place, data.lessons[i].person_name, data.lessons[i].subject);
-            sprintf(answer, "%s_______________________________<br>", answer);
-        }
+	
+	if(lessons == -1){
+		sprintf(answer, "�~Tен�~L: %d, �~]оме�~@ �~C�~Gебной недели: %d, �~S>",
+			data.day, data.week_number);
+		strcat(answer, "wrong group number");
+	}else if(lessons == 0){
+		sprintf(answer, "�~Tен�~L: %d, �~]оме�~@ �~C�~Gебной недели: %d, �~S�~@�~Cппа: %d<br><br>", data.day, data.week_number, data.group);
+		strcat(answer, "\nno lessons");
+	}else{
+		sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
+
+        	sprintf(answer, "%s_______________________________<br>", answer);
+	        for(int i = 0; i < lessons - 1; i++) {
+			if(i){
+				sprintf(answer, "%s_______________________________<br>", answer);
+			}
+			    sprintf(answer, "%s%s %s - %s<br>%s<br>", answer, data.lessons[i].time, data.lessons[i].place, data.lessons[i].person_name, data.lessons[i].subject);
+		            //sprintf(answer, "%s_______________________________<br>", answer);
+	        }
+	}
     } else if(!strcmp(command, "hello")) {
         sprintf(answer, "%s", "1<br>2<br>3<br>hello!");
     } else if(!strcmp(command, "table")) {
@@ -387,16 +422,6 @@ static char * get_answer(const char *command, char *answer) {
     }
     return answer;
 }
-
-void *purple_account_request_authorization(PurpleAccount *account, const char *remote_user, const char *id, const char *alias, const char *message, gboolean on_list, PurpleAccountRequestAuthorizationCb authorize_cb, PurpleAccountRequestAuthorizationCb deny_cb, void *user_data)
-{
-	time_t currentTime = time(NULL);
-	printf("(%s) %s: %s\n", remote_user,
-            purple_utf8_strftime("(%H:%M:%S)", localtime(&currentTime)),
-            ">authorization request<");
-	authorize_cb(user_data);
-}
-
 
 int main(int argc, char *argv[]) {
     const char *uin = "573869459";
@@ -416,6 +441,8 @@ int main(int argc, char *argv[]) {
     PurpleAccount *account = purple_account_new(uin, icqPluginInfo->id);
     purple_account_set_password(account, password);
     purple_account_set_enabled(account, UI_ID, TRUE);
+
+    purple_account_set_bool(account, "authorization", FALSE);
 
     PurpleSavedStatus *status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
     purple_savedstatus_activate(status);
