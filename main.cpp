@@ -405,10 +405,10 @@ static char * get_answer(const char *command, char *answer) {
 		if(lessons == -1){
 			sprintf(answer, "День: %d, Номер учебной недели: %d",
 				data.day, data.week_number);
-			strcat(answer, "\nНедопустимый номер группы");
+			strcat(answer, "<br>Недопустимый номер группы");
 		}else if(lessons == 0){
 			sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
-			strcat(answer, "\nНет занятий");
+			strcat(answer, "<br>Нет занятий");
 		}else{
 			sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
 
