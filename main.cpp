@@ -6,7 +6,6 @@
  */
 
 #include <stdlib.h>
-//#include <iostream>
 #include <glib-2.0/glib.h>
 #include <libpurple/purple.h>
 #include <curl/curl.h>
@@ -15,8 +14,6 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
-
-//#include "cJSON.h"
 
 #define CUSTOM_USER_DIRECTORY  "/dev/null"
 #define CUSTOM_PLUGIN_PATH     ""
@@ -430,9 +427,15 @@ static char * get_answer(const char *command, char *answer) {
 }
 
 int main(int argc, char *argv[]) {
-    const char *uin = "573869459";
-    //const char *uin = "595266840";
-    const char *password = "123456";
+    char uin[10] = "573869459";
+    //char uin[10] = "595266840";
+    char password[30] = "123456";
+
+    if(argc == 3) { //uin и пароль заданы аргументами
+        strcpy(&uin[0], argv[1]);
+        strcpy(&password[0], argv[2]);
+    }
+
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
     signal(SIGCHLD, SIG_IGN);
@@ -444,8 +447,8 @@ int main(int argc, char *argv[]) {
     PurplePlugin *icqPlugin = purple_plugins_find_with_name("ICQ");
     PurplePluginInfo *icqPluginInfo = icqPlugin->info;
 
-    PurpleAccount *account = purple_account_new(uin, icqPluginInfo->id);
-    purple_account_set_password(account, password);
+    PurpleAccount *account = purple_account_new(&uin[0], icqPluginInfo->id);
+    purple_account_set_password(account, &password[0]);
     purple_account_set_enabled(account, UI_ID, TRUE);
 
     purple_account_set_bool(account, "authorization", FALSE);
