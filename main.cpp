@@ -1,4 +1,4 @@
-﻿/* 
+/* 
  * File:   main.cpp
  * Author: mrgrey, thorn (cleancode)
  *
