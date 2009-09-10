@@ -260,8 +260,8 @@ static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
 		if(!date){
 			date = time(NULL);
 		}
-		dateInfo = localtime(date);
-		strftime(dateStr, 10, "%d%m%Y", &dateInfo);
+		dateInfo = localtime(&date);
+		strftime(dateStr, 10, "%d%m%Y", dateInfo);
         char url[131]; //101
         sprintf(&url[0], "http://faculty.ifmo.ru/gadgets/spbsuitmo-schedule-lessons/data/lessons-proxy-json.php?gr=%d&date=%s", group, dateStr);
         curl_easy_setopt(curl, CURLOPT_URL, url);
