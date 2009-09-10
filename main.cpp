@@ -249,14 +249,19 @@ static size_t write_data(char *buffer, size_t size, size_t nmemb, char *userp) {
     return size*nmemb;
 }
 
-static char * get_schedule_json(int group, char *buffer) {
+static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
     CURL *curl;
     CURLcode res;
-
+	char dateStr[11];
+	
     curl = curl_easy_init();
     if (curl) {
+		if(!date){
+			date = time(NULL);
+		}
+		strftime(dateStr, 10, "%d%m%Y", &date);
         char url[131]; //101
-        sprintf(&url[0], "http://faculty.ifmo.ru/gadgets/spbsuitmo-schedule-lessons/data/lessons-proxy-json.php?gr=%d", group);
+        sprintf(&url[0], "http://faculty.ifmo.ru/gadgets/spbsuitmo-schedule-lessons/data/lessons-proxy-json.php?gr=%d&date=%s", group, dateStr);
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, buffer);
@@ -372,7 +377,9 @@ static char * convert_from_utf(const guint16 utf_symbol, char *converted_data) {
 }
 
 static char * get_answer(const char *command, char *answer) {
-    if (!strcmp(command, "time") || !strcmp(command, "date")) {
+	if(!strcmp(command, "version")){
+		strcpy(answer, "Версия: 0.1, билд от 10.09.2009");
+    } else if (!strcmp(command, "time") || !strcmp(command, "date")) {
         time_t rawtime;
         time(&rawtime);
         struct tm *timeinfo = localtime(&rawtime);
@@ -393,11 +400,12 @@ static char * get_answer(const char *command, char *answer) {
 				groupNumber = atoi(&command[9]);
 			}
 		}
-			char buffer[5120], out[5120];
-			get_schedule_json(groupNumber, &buffer[0]);
-			decode_utf_literals(&buffer[0], &out[0]);
-			data data;
-			int lessons = parse_json(out, &data);
+		
+		char buffer[5120], out[5120];
+		get_schedule_json(groupNumber, &buffer[0]);
+		decode_utf_literals(&buffer[0], &out[0]);
+		data data;
+		int lessons = parse_json(out, &data);
 		
 		if(lessons == -1){
 			strcpy(answer, "Недопустимый номер группы");
