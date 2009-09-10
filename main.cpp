@@ -260,7 +260,7 @@ static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
 		if(!date){
 			date = time(NULL);
 		}
-		dateInfo = localtime(&date);
+		dateInfo = localtime(date);
 		strftime(dateStr, 10, "%d%m%Y", &dateInfo);
         char url[131]; //101
         sprintf(&url[0], "http://faculty.ifmo.ru/gadgets/spbsuitmo-schedule-lessons/data/lessons-proxy-json.php?gr=%d&date=%s", group, dateStr);
@@ -403,7 +403,8 @@ static char * get_answer(const char *command, char *answer) {
 			}
 		}
 		
-		time_t date=time();
+		time_t date;
+		time(&date);
 		printf("%d", date);
 		
 		char buffer[5120], out[5120];
