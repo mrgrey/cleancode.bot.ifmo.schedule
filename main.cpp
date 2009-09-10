@@ -386,60 +386,57 @@ static char * get_answer(const char *command, char *answer) {
         time(&rawtime);
         struct tm *timeinfo = localtime(&rawtime);
         sprintf(answer, "Date and time: %s", asctime(timeinfo));
-	} else if(!strcmp(command, "help")) {
-		strcpy(answer, 	"Список доступных комманд:<br>"
-						" schedule - выводит расписание для группы 4512<br>"
-						" schedule %group_number% - выводит расписание для группы %group_number%<br>"
-						" time - выводит текущее время и дату<br>"
-						" date - выводит текущее время и дату<br>"
-						" help - выводит это сообщение<br>"
-		);
-    } else if(strstr(command, "schedule") == command && (!command[8] || command[8] == ' ')) {
-		int groupNumber = 4512;
-		
-		if(command[8] == ' '){
-			if(atoi(&command[9])){
-				groupNumber = atoi(&command[9]);
-			}
-		}
-		
-		time_t date;
-		time(&date);
-		if(strstr(command, "tomorrow")){
-			date += 24*3600;
-		}
-		
-		
-		
-		char buffer[5120], out[5120];
-		get_schedule_json(groupNumber, &buffer[0], date);
-		decode_utf_literals(&buffer[0], &out[0]);
-		data data;
-		int lessons = parse_json(out, &data);
-		
-		if(lessons == -1){
-			strcpy(answer, "Недопустимый номер группы");
-		}else if(lessons == 0){
-			sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
-			strcat(answer, "<br>Нет занятий");
-		}else{
-			sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
+    } else if (!strcmp(command, "help")) {
+        strcpy(answer, "Список доступных комманд:<br>"
+                " schedule - выводит расписание для группы 4512<br>"
+                " schedule %group_number% - выводит расписание для группы %group_number%<br>"
+                " schedule tomorrow - выводит расписание на завтра для группы 4512<br>"
+                " schedule %group_number% tomorrow - выводит расписание на завтра для группы %group_number%<br>"
+                " time - выводит текущее время и дату<br>"
+                " date - выводит текущее время и дату<br>"
+                " version - выводит информацию о версии<br>"
+                " help - выводит это сообщение<br>"
+                );
+    } else if (strstr(command, "schedule") == command && (!command[8] || command[8] == ' ')) {
+        int groupNumber = 4512;
 
-				sprintf(answer, "%s_______________________________<br>", answer);
-				for(int i = 0; i < lessons - 1; i++) {
-				if(i){
-					sprintf(answer, "%s_______________________________<br>", answer);
-				}
-					sprintf(answer, "%s%s %s - %s<br>%s<br>", answer, data.lessons[i].time, data.lessons[i].place, data.lessons[i].person_name, data.lessons[i].subject);
-						//sprintf(answer, "%s_______________________________<br>", answer);
-				}
-		}
-    } else if(!strcmp(command, "hello")) {
-        sprintf(answer, "%s", "1<br>2<br>3<br>hello!");
-    } else if(!strcmp(command, "table")) {
-        sprintf(answer, "%s", "<table><tr><td>1</td><td>2</td></tr><tr><td>3</td><td>4</td></tr></table>");
+        if (command[8] == ' ') {
+            if (atoi(&command[9])) {
+                groupNumber = atoi(&command[9]);
+            }
+        }
+
+        time_t date;
+        time(&date);
+        if (strstr(command, "tomorrow")) {
+            date += 24 * 3600;
+        }
+
+        char buffer[5120], out[5120];
+        get_schedule_json(groupNumber, &buffer[0], date);
+        decode_utf_literals(&buffer[0], &out[0]);
+        data data;
+        int lessons = parse_json(out, &data);
+
+        if (lessons == -1) {
+            strcpy(answer, "Недопустимый номер группы");
+        } else if (lessons == 0) {
+            sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
+            strcat(answer, "<br>Нет занятий");
+        } else {
+            sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
+
+            sprintf(answer, "%s_______________________________<br>", answer);
+            for (int i = 0; i < lessons - 1; i++) {
+                if (i) {
+                    sprintf(answer, "%s_______________________________<br>", answer);
+                }
+                sprintf(answer, "%s%s %s - %s<br>%s<br>", answer, data.lessons[i].time, data.lessons[i].place, data.lessons[i].person_name, data.lessons[i].subject);
+                //sprintf(answer, "%s_______________________________<br>", answer);
+            }
+        }
     } else {
-        sprintf(answer, "%s", "Can't recognize that command. Bzz-z-z.");
+        sprintf(answer, "%s", "Неизвестная команда.");
     }
     return answer;
 }
