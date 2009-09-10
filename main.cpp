@@ -253,13 +253,15 @@ static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
     CURL *curl;
     CURLcode res;
 	char dateStr[11];
+	struct tm *dateInfo;
 	
     curl = curl_easy_init();
     if (curl) {
 		if(!date){
 			date = time(NULL);
 		}
-		strftime(dateStr, 10, "%d%m%Y", &date);
+		dateInfo = localtime(&date);
+		strftime(dateStr, 10, "%d%m%Y", &dateInfo);
         char url[131]; //101
         sprintf(&url[0], "http://faculty.ifmo.ru/gadgets/spbsuitmo-schedule-lessons/data/lessons-proxy-json.php?gr=%d&date=%s", group, dateStr);
         curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -400,6 +402,9 @@ static char * get_answer(const char *command, char *answer) {
 				groupNumber = atoi(&command[9]);
 			}
 		}
+		
+		time_t date=time();
+		printf("%d", date);
 		
 		char buffer[5120], out[5120];
 		get_schedule_json(groupNumber, &buffer[0]);
