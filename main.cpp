@@ -16,6 +16,7 @@
 #include <string.h>
 #include <unistd.h>
 
+// <editor-fold defaultstate="collapsed" desc="define section">
 #define CUSTOM_USER_DIRECTORY  "/dev/null"
 #define CUSTOM_PLUGIN_PATH     ""
 #define PLUGIN_SAVE_PREF       "/purple/nullclient/plugins/saved"
@@ -27,6 +28,8 @@
  */
 #define PURPLE_GLIB_READ_COND  (G_IO_IN | G_IO_HUP | G_IO_ERR)
 #define PURPLE_GLIB_WRITE_COND (G_IO_OUT | G_IO_HUP | G_IO_ERR | G_IO_NVAL)
+// </editor-fold>
+
 
 typedef struct _PurpleGLibIOClosure {
     PurpleInputFunction function;
@@ -97,9 +100,11 @@ static PurpleEventLoopUiOps glib_eventloops ={
 static char * get_answer(const char *command, char *answer);
 
 /*** Conversation uiops ***/
+// <editor-fold defaultstate="collapsed" desc="conversation uiops">
+
 static void write_conv(PurpleConversation *conv, const char *who, const char *alias,
         const char *message, PurpleMessageFlags flags, time_t mtime) {
-    if (!(flags & PURPLE_MESSAGE_RECV) ) 
+    if (!(flags & PURPLE_MESSAGE_RECV))
         return;
 
     const char *name;
@@ -122,7 +127,7 @@ static void write_conv(PurpleConversation *conv, const char *who, const char *al
     purple_conv_im_send(PURPLE_CONV_IM(conv), send_message);
 }
 
-static PurpleConversationUiOps conv_uiops ={
+static PurpleConversationUiOps conv_uiops = {
     NULL, /* create_conversation  */
     NULL, /* destroy_conversation */
     NULL, /* write_chat           */
@@ -146,9 +151,10 @@ static PurpleConversationUiOps conv_uiops ={
 
 static void ui_init(void) {
     purple_conversations_set_ui_ops(&conv_uiops);
-}
+}// </editor-fold>
 
-static PurpleCoreUiOps core_uiops ={
+// <editor-fold defaultstate="collapsed" desc="libpurple init">
+static PurpleCoreUiOps core_uiops = {
     NULL,
     NULL,
     ui_init,
@@ -161,30 +167,7 @@ static PurpleCoreUiOps core_uiops ={
     NULL
 };
 
-//static void *request_authorize(PurpleAccount *account, const char *remote_user, const char *id,
-//        const char *alias, const char *message, gboolean on_list, PurpleAccountRequestAuthorizationCb authorize_cb,
-//        PurpleAccountRequestAuthorizationCb deny_cb, void *user_data) {
-//    //purple_account_
-//}
-
-
-static PurpleAccountUiOps account_uiops ={
-    NULL, //notify_added
-    NULL, //status_changed
-    NULL, //request_add
-    //request_authorize, //request_authorize
-    NULL, //request_authorize
-    NULL, //close_account_request
-
-    /* padding */
-    NULL,
-    NULL,
-    NULL,
-    NULL
-};
-
-static void
-init_libpurple(void) {
+static void init_libpurple(void) {
     /* Set a custom user directory (optional) */
     purple_util_set_user_dir(CUSTOM_USER_DIRECTORY);
 
@@ -232,7 +215,7 @@ init_libpurple(void) {
 
     /* Load the pounces. */
     purple_pounces_load();
-}
+}// </editor-fold>
 
 static void signed_on(PurpleConnection *gc, gpointer null) {
     PurpleAccount *account = purple_connection_get_account(gc);
