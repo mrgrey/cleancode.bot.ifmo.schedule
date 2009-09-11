@@ -462,19 +462,14 @@ int main(int argc, char *argv[]) {
 	while((c = getopt_long(argc, argv, "", long_options, &option_index))!=-1){
 		switch(c){
 		case optIcgLogin:
-			printf("wow!");
+			strcpy(&uin[0], optarg);
 			break;
 		case optIcgPass:
-			printf("oops!");
+		        strcpy(&password[0], optarg);
 			break;
 		}
 	}
 	
-    if(argc == 3) { //uin и пароль заданы аргументами
-        strcpy(&uin[0], argv[1]);
-        strcpy(&password[0], argv[2]);
-    }
-
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
     signal(SIGCHLD, SIG_IGN);
