@@ -38,8 +38,8 @@
 #define STATUS_AWAY 2
 #define STATUS_MAX_ID STATUS_AWAY
 
-#define INIT_STATUS_TYPE(our_code, purple_code) status_types[our_code] = purple_status_type_new(purple_code, NULL, NULL, true);
-#define INIT_STATUS(our_code) statuses[our_code] = purple_status_new(status_types[our_code], presence);
+#define INIT_STATUS(our_code, purple_code) 	status_types[our_code] = purple_status_type_new(purple_code, NULL, NULL, true);\
+								statuses[our_code] = purple_status_new(status_types[our_code], presence);
 #define STATUS_ID(our_code) purple_status_get_id(statuses[our_code])
 
 static PurplePresence *presence;
@@ -598,19 +598,14 @@ int main(int argc, char *argv[]) {
 	
 	presence = purple_presence_new_for_account(globalAccount);
 	
-	INIT_STATUS_TYPE(STATUS_AVAILABLE, PURPLE_STATUS_AVAILABLE);
-	INIT_STATUS_TYPE(STATUS_OFFLINE, PURPLE_STATUS_OFFLINE);
-	INIT_STATUS_TYPE(STATUS_AWAY, PURPLE_STATUS_AWAY);
-	
-	INIT_STATUS(STATUS_AVAILABLE);
-	INIT_STATUS(STATUS_OFFLINE);
-	INIT_STATUS(STATUS_AWAY);
-	
+	INIT_STATUS(STATUS_AVAILABLE, PURPLE_STATUS_AVAILABLE);
+	INIT_STATUS(STATUS_OFFLINE, PURPLE_STATUS_OFFLINE);
+	INIT_STATUS(STATUS_AWAY, PURPLE_STATUS_AWAY);	
 	
 	
 	//purple_presence_set_status_active(presence, purple_status_get_id(awayStatus), TRUE);
 	
-	purple_account_set_status(globalAccount, STATUS_ID(STATUS_AWAY), TRUE, 0);
+	purple_account_set_status(globalAccount, STATUS_ID(STATUS_AVAILABLE), TRUE, 0);
 	//purple_presence_switch_status(presence, purple_status_get_id(offlineStatus));
 	
     connect_to_signals();
