@@ -504,6 +504,10 @@ static char * get_answer(const char *command, char *answer) {
     return answer;
 }
 
+void show_usage(){
+	printf("\nUsage: main --icq.login <uin> --icq.pass <pass>\n");
+}
+
 void quit_handler(int sig){
 	//purple_account_set_enabled(globalAccount, UI_ID, FALSE);
 	printf("Ctrl+C received. See u!\n");
@@ -519,6 +523,8 @@ int main(int argc, char *argv[]) {
 
     const int optIcgLogin = 1;
     const int optIcgPass = 2;
+	
+	int required_options = optIcgLogin | optIcgPass;
 
     static struct option long_options[] = {
         {"icq.login", required_argument, 0, optIcgLogin},
@@ -533,12 +539,20 @@ int main(int argc, char *argv[]) {
         switch (c) {
             case optIcgLogin:
                 strcpy(&uin[0], optarg);
+				required_options &= ~optIcgLogin;
                 break;
             case optIcgPass:
                 strcpy(&password[0], optarg);
+				required_options &= ~optIcgPass;
                 break;
         }
     }
+	
+	if(required_options){
+		show_usage();
+		exit(0);
+	}
+	
 
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
