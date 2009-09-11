@@ -1,4 +1,4 @@
-/* 
+/*
  * File:   main.cpp
  * Author: mrgrey, thorn (cleancode)
  *
@@ -37,6 +37,16 @@ void wait(int seconds){
 	endwait=clock()+seconds*CLOCKS_PER_SEC;
 	while (clock()<endwait);
 }
+
+static char day_of_week[][23]={
+    "Понедельник",
+    "Вторник",
+    "Среда",
+    "Четверг",
+    "Пятница",
+    "Суббота",
+    "Воскресенье"
+};
 
 typedef struct _PurpleGLibIOClosure {
     PurpleInputFunction function;
@@ -267,7 +277,7 @@ static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
     CURLcode res;
 	char dateStr[11];
 	struct tm *dateInfo;
-	
+
     curl = curl_easy_init();
     if (curl) {
 		if(!date){
@@ -319,7 +329,7 @@ typedef struct{
 
 typedef struct {
     int week_number;
-    int day;
+    char day[23];
     int group;
     pair lessons[8];
 } data;
@@ -338,12 +348,12 @@ static int parse_json(const char *json_data, data *data) {
 	case 's':
             break;
     }
-    
+
 
     startptr = strstr(json_data, "week_number");
     data->week_number = (int)strtol(startptr+13,NULL,10);
     startptr = strstr(startptr, "day");
-    data->day = (int)strtol(startptr+6,NULL,10);
+    strcpy(&(data->day[0]) ,&day_of_week[(int)strtol(startptr+6,NULL,10)][0]);
     startptr = strstr(startptr, "group");
     data->group = (int)strtol(startptr+8,NULL,10);
 
@@ -372,7 +382,7 @@ static int parse_json(const char *json_data, data *data) {
         memcpy(data->lessons[i].person_name, startptr+14, endptr-startptr-15);
         data->lessons[i].person_name[endptr-startptr-15] = 0;
     }
-    
+
     return 8;
 }
 
@@ -392,8 +402,8 @@ static char * convert_from_utf(const guint16 utf_symbol, char *converted_data) {
 }
 
 static char * get_answer(const char *command, char *answer) {
-	if(!strcmp(command, "version")){
-		strcpy(answer, "Версия: 0.1, билд от 10.09.2009");
+    if (!strcmp(command, "version")) {
+        strcpy(answer, "Версия: 0.1, билд от 11.09.2009");
     } else if (!strcmp(command, "time") || !strcmp(command, "date")) {
         time_t rawtime;
         time(&rawtime);
@@ -410,19 +420,24 @@ static char * get_answer(const char *command, char *answer) {
                 " version - выводит информацию о версии<br>"
                 " help - выводит это сообщение<br>"
                 );
-    } else if (strstr(command, "schedule") == command && (!command[8] || command[8] == ' ')) {
+    } else if (strstr(command, "schedule") == command) {
+        char *curcharptr = (char *)command;
         int groupNumber = 4512;
-
-        if (command[8] == ' ') {
-            if (atoi(&command[9])) {
-                groupNumber = atoi(&command[9]);
-            }
-        }
-
         time_t date;
         time(&date);
-        if (strstr(command, "tomorrow")) {
-            date += 24 * 3600;
+        gboolean is_tomorrow = FALSE;
+        while(curcharptr != 0) {
+            if(strstr((const char *)curcharptr, " ") == 0)
+                break;
+            curcharptr = strstr((const char *)curcharptr, " ") + 1;
+            if (*curcharptr >= '0' && *curcharptr <= '9') {
+                groupNumber = atoi(curcharptr);
+                curcharptr += sizeof(groupNumber);
+            } else if(strstr((const char *)curcharptr, "tomorrow") && !is_tomorrow) {
+                date += 24 * 3600;
+                curcharptr += 8;
+                is_tomorrow = TRUE;
+            }
         }
 
         char buffer[5120], out[5120];
@@ -434,11 +449,10 @@ static char * get_answer(const char *command, char *answer) {
         if (lessons == -1) {
             strcpy(answer, "Недопустимый номер группы");
         } else if (lessons == 0) {
-            sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
+            sprintf(answer, "%s, %d неделя<br>Группа: %d<br><br>", data.day, data.week_number, data.group);
             strcat(answer, "<br>Нет занятий");
         } else {
-            sprintf(answer, "День: %d, Номер учебной недели: %d, Группа: %d<br><br>", data.day, data.week_number, data.group);
-
+            sprintf(answer, "%s, %d неделя<br>Группа: %d<br><br>", data.day, data.week_number, data.group);
             sprintf(answer, "%s_______________________________<br>", answer);
             for (int i = 0; i < lessons - 1; i++) {
                 if (i) {
@@ -461,29 +475,37 @@ int main(int argc, char *argv[]) {
     //char password[30] = "123456";
     char password[30];
 
-	const int optIcgLogin = 1;
-	const int optIcgPass = 2;
-	
-	static struct option long_options[] = {
-		{"icq.login", required_argument, 0, optIcgLogin},
-		{"icq.pass", required_argument, 0, optIcgPass}
-	};
-	
-	int option_index = 0;
-	
-	int c = -1;
-	
-	while((c = getopt_long(argc, argv, "", long_options, &option_index))!=-1){
-		switch(c){
-		case optIcgLogin:
-			strcpy(&uin[0], optarg);
-			break;
-		case optIcgPass:
-		        strcpy(&password[0], optarg);
-			break;
-		}
-	}
-	
+    const int optIcgLogin = 1;
+    const int optIcgPass = 2;
+
+    static struct option long_options[] = {
+        {"icq.login", required_argument, 0, optIcgLogin},
+        {"icq.pass", required_argument, 0, optIcgPass}
+    };
+
+    int option_index = 0;
+
+    int c = -1;
+
+    while ((c = getopt_long(argc, argv, "", long_options, &option_index)) != -1) {
+        switch (c) {
+            case optIcgLogin:
+                strcpy(&uin[0], optarg);
+                break;
+            case optIcgPass:
+                strcpy(&password[0], optarg);
+                break;
+        }
+    }
+
+    strcpy(day_of_week[1], "Понедельник");
+    strcpy(day_of_week[2], "Вторник");
+    strcpy(day_of_week[3], "Среда");
+    strcpy(day_of_week[4], "Четверг");
+    strcpy(day_of_week[5], "Пятница");
+    strcpy(day_of_week[6], "Суббота");
+    strcpy(day_of_week[7], "Воскресенье");
+
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
     signal(SIGCHLD, SIG_IGN);
