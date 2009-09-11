@@ -10,6 +10,7 @@
 #include <libpurple/purple.h>
 #include <curl/curl.h>
 #include <iconv.h>
+#include <getopt.h>
 
 #include <signal.h>
 #include <string.h>
@@ -261,7 +262,7 @@ static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
 			date = time(NULL);
 		}
 		dateInfo = localtime(&date);
-		strftime(dateStr, 10, "%d.%m.%Y", dateInfo);
+		strftime(dateStr, 11, "%d.%m.%Y", dateInfo);
         char url[131]; //101
         sprintf(&url[0], "http://faculty.ifmo.ru/gadgets/spbsuitmo-schedule-lessons/data/lessons-proxy-json.php?gr=%d&date=%s", group, dateStr);
         curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -446,6 +447,29 @@ int main(int argc, char *argv[]) {
     //char uin[10] = "595266840";
     char password[30] = "123456";
 
+	const int optIcgLogin = 1;
+	const int optIcgPass = 2;
+	
+	static struct option long_options[] = {
+		{"icq.login", required_argument, 0, optIcgLogin},
+		{"icq.pass", required_argument, 0, optIcgPass}
+	};
+	
+	int option_index = 0;
+	
+	int c = -1;
+	
+	while((c = getopt_long(argc, argv, "", long_options, &option_index))!=-1){
+		switch(c){
+		case optIcgLogin:
+			printf("wow!");
+			break;
+		case optIcgPass:
+			printf("oops!");
+			break;
+		}
+	}
+	
     if(argc == 3) { //uin и пароль заданы аргументами
         strcpy(&uin[0], argv[1]);
         strcpy(&password[0], argv[2]);
