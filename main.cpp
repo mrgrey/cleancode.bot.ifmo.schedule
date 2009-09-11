@@ -31,6 +31,14 @@
 // </editor-fold>
 
 
+static PurpleSavedStatus *onlineStatus;
+
+void wait(int seconds){
+	clock_t endwait;
+	endwait=clock()+seconds*CLOCKS_PER_SEC;
+	while (clock()<endwait);
+}
+
 typedef struct _PurpleGLibIOClosure {
     PurpleInputFunction function;
     guint result;
@@ -222,10 +230,32 @@ static void signed_on(PurpleConnection *gc, gpointer null) {
     printf("Account connected: %s %s\n", account->username, account->protocol_id);
 }
 
+static void signed_off(PurpleConnection *gc, gpointer null) {
+    PurpleAccount *account = purple_connection_get_account(gc);
+    printf("Account disconnected: %s %s\n", account->username, account->protocol_id);
+	
+	PurpleConnectionErrorInfo *errorInfo = (PurpleConnectionErrorInfo *)purple_account_get_current_error(account);
+	printf("%s\n", errorInfo -> description);
+	gboolean enabled = purple_account_get_enabled(account,UI_ID);
+	printf("Account is enabled: %d\n", enabled);
+	purple_account_clear_current_error(account);
+	purple_account_set_enabled(account, UI_ID, TRUE);
+	//purple_account_connect(account);
+	purple_savedstatus_activate(onlineStatus);
+	if(errorInfo = (PurpleConnectionErrorInfo *)purple_account_get_current_error(account)){
+		printf("%d\n", errorInfo -> type);
+	}else{
+		printf("no_error");
+	}	
+}
+
 static void connect_to_signals(void) {
     static int handle;
     purple_signal_connect(purple_connections_get_handle(), "signed-on", &handle,
             PURPLE_CALLBACK(signed_on), NULL);
+     purple_signal_connect(purple_connections_get_handle(), "signed-off", &handle,
+            PURPLE_CALLBACK(signed_off), NULL);
+
 }
 
 static size_t write_data(char *buffer, size_t size, size_t nmemb, char *userp) {
@@ -472,8 +502,8 @@ int main(int argc, char *argv[]) {
 
     purple_account_set_bool(account, "authorization", FALSE);
 
-    PurpleSavedStatus *status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
-    purple_savedstatus_activate(status);
+    onlineStatus = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
+    purple_savedstatus_activate(onlineStatus);
 
     connect_to_signals();
     g_main_loop_run(loop);
