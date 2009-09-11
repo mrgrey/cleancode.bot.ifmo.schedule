@@ -416,13 +416,13 @@ static char* date_time(const char *command, char *answer){
 }
 
 static char* version(const char *command, char *answer){
-	strcpy(answer, "Версия: 0.1, билд от 11.09.2009");
+	strcpy(answer, "Версия: 0.2, билд от 12.09.2009");
 	return answer;
 }
 
 static char* schedule(const char *command, char *answer){
 char *curcharptr = (char *)command;
-        int groupNumber = 4512;
+        int groupNumber = 0;
         time_t date;
         time(&date);
         gboolean is_tomorrow = FALSE;
@@ -439,6 +439,12 @@ char *curcharptr = (char *)command;
                 is_tomorrow = TRUE;
             }
         }
+		
+		if(!groupNumber){
+			strcpy(answer, "Пожалуйста, укажите номер группы.");
+			return answer;
+		}
+		
 
         char buffer[5120], out[5120];
         get_schedule_json(groupNumber, &buffer[0], date);
@@ -465,21 +471,18 @@ char *curcharptr = (char *)command;
 		return answer;
 }
 
+
 static char* help(const char *command, char *answer){
 	strcpy(answer, "Список доступных комманд:<br>"
                 "ENG:<br>"
-                " schedule - выводит расписание для группы 4512<br>"
                 " schedule %group_number% - выводит расписание для группы %group_number%<br>"
-                " schedule tomorrow - выводит расписание на завтра для группы 4512<br>"
                 " schedule %group_number% tomorrow - выводит расписание на завтра для группы %group_number%<br>"
                 " time - выводит текущее время и дату<br>"
                 " date - выводит текущее время и дату<br>"
                 " version - выводит информацию о версии<br>"
                 " help - выводит это сообщение<br>"
                 "РУС:<br>"
-                " расписание - выводит расписание для группы 4512<br>"
                 " расписание %номер_группы% - выводит расписание для группы %номер_группы%<br>"
-                " расписание на завтра - выводит расписание на завтра для группы 4512<br>"
                 " расписание %номер_группы% на завтра - выводит расписание на завтра для группы %номер_группы%<br>"
                 " время - выводит текущее время и дату<br>"
                 " дата - выводит текущее время и дату<br>"
@@ -549,9 +552,9 @@ void quit_handler(int sig){
 	exit(0);
 }
 
-void init_account()
-{
+void init_account(){
 	globalAccount = purple_account_new(&uin[0], icqPluginInfo->id);
+	
     purple_account_set_password(globalAccount, &password[0]);
     purple_account_set_enabled(globalAccount, UI_ID, TRUE);
 
@@ -567,6 +570,11 @@ void init_account()
 	
 	purple_account_set_status(globalAccount, STATUS_ID(STATUS_AVAILABLE), TRUE, 0);	
 }
+
+/*void destroy_account(){
+	//TODO
+	//purple_account_destroy(globalAccount);
+}*/
 
 int main(int argc, char *argv[]) {
     //char uin[10] = "573869459";
