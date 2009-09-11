@@ -33,7 +33,19 @@
 #define COMMANDS_TABLE_INIT() commands_table = g_hash_table_new(g_str_hash, g_str_equal);
 #define COMMANDS_TABLE_ENTRY(cmd,func) g_hash_table_insert(commands_table, (void*)cmd, (void*)func);
 
-static PurpleSavedStatus *onlineStatus, *offlineStatus;
+#define STATUS_AVAILABLE 0
+#define STATUS_OFFLINE 1
+#define STATUS_AWAY 2
+#define STATUS_MAX_ID STATUS_AWAY
+
+#define INIT_STATUS_TYPE(our_code, purple_code) status_types[our_code] = purple_status_type_new(purple_code, NULL, NULL, true);
+#define INIT_STATUS(our_code) statuses[our_code] = purple_status_new(status_types[our_code], presence);
+#define STATUS_ID(our_code) purple_status_get_id(statuses[our_code])
+
+static PurplePresence *presence;
+static PurpleStatusType* status_types[STATUS_MAX_ID + 1];
+static PurpleStatus* statuses[STATUS_MAX_ID + 1];
+
 static PurpleAccount *globalAccount;
 
 void wait(int seconds){
@@ -583,14 +595,29 @@ int main(int argc, char *argv[]) {
     purple_account_set_enabled(globalAccount, UI_ID, TRUE);
 
     purple_account_set_bool(globalAccount, "authorization", FALSE);
-
-    onlineStatus = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
-    purple_savedstatus_activate(onlineStatus);
-	offlineStatus = purple_savedstatus_new(NULL, PURPLE_STATUS_OFFLINE);
-
+	
+	presence = purple_presence_new_for_account(globalAccount);
+	
+	INIT_STATUS_TYPE(STATUS_AVAILABLE, PURPLE_STATUS_AVAILABLE);
+	INIT_STATUS_TYPE(STATUS_OFFLINE, PURPLE_STATUS_OFFLINE);
+	INIT_STATUS_TYPE(STATUS_AWAY, PURPLE_STATUS_AWAY);
+	
+	INIT_STATUS(STATUS_AVAILABLE);
+	INIT_STATUS(STATUS_OFFLINE);
+	INIT_STATUS(STATUS_AWAY);
+	
+	
+	
+	//purple_presence_set_status_active(presence, purple_status_get_id(awayStatus), TRUE);
+	
+	purple_account_set_status(globalAccount, STATUS_ID(STATUS_AWAY), TRUE, 0);
+	//purple_presence_switch_status(presence, purple_status_get_id(offlineStatus));
+	
     connect_to_signals();
 	init_commands_table();
     g_main_loop_run(loop);
 
     return 0;
 }
+
+
