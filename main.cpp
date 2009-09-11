@@ -39,6 +39,14 @@ void wait(int seconds){
 	while (clock()<endwait);
 }
 
+static PurpleSavedStatus *onlineStatus;
+
+void wait(int seconds){
+	clock_t endwait;
+	endwait=clock()+seconds*CLOCKS_PER_SEC;
+	while (clock()<endwait);
+}
+
 typedef struct _PurpleGLibIOClosure {
     PurpleInputFunction function;
     guint result;
