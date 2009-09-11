@@ -30,15 +30,6 @@
 #define PURPLE_GLIB_WRITE_COND (G_IO_OUT | G_IO_HUP | G_IO_ERR | G_IO_NVAL)
 // </editor-fold>
 
-
-static PurpleSavedStatus *onlineStatus;
-
-void wait(int seconds){
-	clock_t endwait;
-	endwait=clock()+seconds*CLOCKS_PER_SEC;
-	while (clock()<endwait);
-}
-
 static PurpleSavedStatus *onlineStatus;
 
 void wait(int seconds){
