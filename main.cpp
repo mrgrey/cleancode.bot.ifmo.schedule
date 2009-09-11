@@ -22,10 +22,7 @@
 #define PLUGIN_SAVE_PREF       "/purple/nullclient/plugins/saved"
 #define UI_ID                  "cleancode.bot.ifmo.schedule"
 
-/**
- * The following eventloop functions are used in both pidgin and purple-text. If your
- * application uses glib mainloop, you can safely use this verbatim.
- */
+
 #define PURPLE_GLIB_READ_COND  (G_IO_IN | G_IO_HUP | G_IO_ERR)
 #define PURPLE_GLIB_WRITE_COND (G_IO_OUT | G_IO_HUP | G_IO_ERR | G_IO_NVAL)
 // </editor-fold>
@@ -42,6 +39,11 @@
 								statuses[our_code] = purple_status_new(status_types[our_code], presence);
 #define STATUS_ID(our_code) purple_status_get_id(statuses[our_code])
 
+char uin[10];
+char password[30];
+
+static PurplePlugin *icqPlugin;
+static PurplePluginInfo *icqPluginInfo;
 static PurplePresence *presence;
 static PurpleStatusType* status_types[STATUS_MAX_ID + 1];
 static PurpleStatus* statuses[STATUS_MAX_ID + 1];
@@ -533,17 +535,33 @@ void show_usage(){
 }
 
 void quit_handler(int sig){
-	//purple_account_set_enabled(globalAccount, UI_ID, FALSE);
 	printf("Ctrl+C received. See u!\n");
 	exit(0);
+}
+
+void init_account()
+{
+	globalAccount = purple_account_new(&uin[0], icqPluginInfo->id);
+    purple_account_set_password(globalAccount, &password[0]);
+    purple_account_set_enabled(globalAccount, UI_ID, TRUE);
+
+    purple_account_set_bool(globalAccount, "authorization", FALSE);
+	
+	presence = purple_presence_new_for_account(globalAccount);
+	
+	INIT_STATUS(STATUS_AVAILABLE, PURPLE_STATUS_AVAILABLE);
+	INIT_STATUS(STATUS_OFFLINE, PURPLE_STATUS_OFFLINE);
+	INIT_STATUS(STATUS_AWAY, PURPLE_STATUS_AWAY);	
+	
+	//purple_presence_set_status_active(presence, purple_status_get_id(awayStatus), TRUE);
+	
+	purple_account_set_status(globalAccount, STATUS_ID(STATUS_AVAILABLE), TRUE, 0);	
 }
 
 int main(int argc, char *argv[]) {
     //char uin[10] = "573869459";
     //char uin[10] = "595266840";
-    char uin[10];
-    //char password[30] = "123456";
-    char password[30];
+    
 
     const int optIcgLogin = 1;
     const int optIcgPass = 2;
@@ -587,26 +605,10 @@ int main(int argc, char *argv[]) {
 
     printf("libpurple initialized.\n");
 
-    PurplePlugin *icqPlugin = purple_plugins_find_with_name("ICQ");
-    PurplePluginInfo *icqPluginInfo = icqPlugin->info;
+    icqPlugin = purple_plugins_find_with_name("ICQ");
+    icqPluginInfo = icqPlugin->info;
 
-    globalAccount = purple_account_new(&uin[0], icqPluginInfo->id);
-    purple_account_set_password(globalAccount, &password[0]);
-    purple_account_set_enabled(globalAccount, UI_ID, TRUE);
-
-    purple_account_set_bool(globalAccount, "authorization", FALSE);
-	
-	presence = purple_presence_new_for_account(globalAccount);
-	
-	INIT_STATUS(STATUS_AVAILABLE, PURPLE_STATUS_AVAILABLE);
-	INIT_STATUS(STATUS_OFFLINE, PURPLE_STATUS_OFFLINE);
-	INIT_STATUS(STATUS_AWAY, PURPLE_STATUS_AWAY);	
-	
-	
-	//purple_presence_set_status_active(presence, purple_status_get_id(awayStatus), TRUE);
-	
-	purple_account_set_status(globalAccount, STATUS_ID(STATUS_AVAILABLE), TRUE, 0);
-	//purple_presence_switch_status(presence, purple_status_get_id(offlineStatus));
+	init_account();
 	
     connect_to_signals();
 	init_commands_table();
