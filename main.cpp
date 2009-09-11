@@ -122,7 +122,7 @@ static void write_conv(PurpleConversation *conv, const char *who, const char *al
     purple_conv_im_send(PURPLE_CONV_IM(conv), send_message);
 }
 
-static PurpleConversationUiOps null_conv_uiops ={
+static PurpleConversationUiOps conv_uiops ={
     NULL, /* create_conversation  */
     NULL, /* destroy_conversation */
     NULL, /* write_chat           */
@@ -144,14 +144,14 @@ static PurpleConversationUiOps null_conv_uiops ={
     NULL
 };
 
-static void null_ui_init(void) {
-    purple_conversations_set_ui_ops(&null_conv_uiops);
+static void ui_init(void) {
+    purple_conversations_set_ui_ops(&conv_uiops);
 }
 
-static PurpleCoreUiOps null_core_uiops ={
+static PurpleCoreUiOps core_uiops ={
     NULL,
     NULL,
-    null_ui_init,
+    ui_init,
     NULL,
 
     /* padding */
@@ -197,7 +197,7 @@ init_libpurple(void) {
      * 	- initialize the ui components for all the modules.
      * 	- uninitialize the ui components for all the modules when the core terminates.
      */
-    purple_core_set_ui_ops(&null_core_uiops);
+    purple_core_set_ui_ops(&core_uiops);
 
     /* Set the uiops for the eventloop. If your client is glib-based, you can safely
      * copy this verbatim. */
@@ -239,7 +239,7 @@ static void signed_on(PurpleConnection *gc, gpointer null) {
     printf("Account connected: %s %s\n", account->username, account->protocol_id);
 }
 
-static void connect_to_signals_for_demonstration_purposes_only(void) {
+static void connect_to_signals(void) {
     static int handle;
     purple_signal_connect(purple_connections_get_handle(), "signed-on", &handle,
             PURPLE_CALLBACK(signed_on), NULL);
@@ -443,9 +443,11 @@ static char * get_answer(const char *command, char *answer) {
 }
 
 int main(int argc, char *argv[]) {
-    char uin[10] = "573869459";
+    //char uin[10] = "573869459";
     //char uin[10] = "595266840";
-    char password[30] = "123456";
+    char uin[10];
+    //char password[30] = "123456";
+    char password[30];
 
 	const int optIcgLogin = 1;
 	const int optIcgPass = 2;
@@ -490,7 +492,7 @@ int main(int argc, char *argv[]) {
     PurpleSavedStatus *status = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
     purple_savedstatus_activate(status);
 
-    connect_to_signals_for_demonstration_purposes_only();
+    connect_to_signals();
     g_main_loop_run(loop);
 
     return 0;
