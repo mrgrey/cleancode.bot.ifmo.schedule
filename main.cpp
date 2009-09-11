@@ -30,7 +30,11 @@
 #define PURPLE_GLIB_WRITE_COND (G_IO_OUT | G_IO_HUP | G_IO_ERR | G_IO_NVAL)
 // </editor-fold>
 
-static PurpleSavedStatus *onlineStatus;
+#define COMMANDS_TABLE_INIT() commands_table = g_hash_table_new(g_str_hash, g_str_equal);
+#define COMMANDS_TABLE_ENTRY(cmd,func) g_hash_table_insert(commands_table, (void*)cmd, (void*)func);
+
+static PurpleSavedStatus *onlineStatus, *offlineStatus;
+static PurpleAccount *globalAccount;
 
 void wait(int seconds){
 	clock_t endwait;
@@ -39,6 +43,7 @@ void wait(int seconds){
 }
 
 static char day_of_week[][23]={
+	"Воскресенье",
     "Понедельник",
     "Вторник",
     "Среда",
@@ -242,20 +247,6 @@ static void signed_on(PurpleConnection *gc, gpointer null) {
 static void signed_off(PurpleConnection *gc, gpointer null) {
     PurpleAccount *account = purple_connection_get_account(gc);
     printf("Account disconnected: %s %s\n", account->username, account->protocol_id);
-	
-	PurpleConnectionErrorInfo *errorInfo = (PurpleConnectionErrorInfo *)purple_account_get_current_error(account);
-	printf("%s\n", errorInfo -> description);
-	gboolean enabled = purple_account_get_enabled(account,UI_ID);
-	printf("Account is enabled: %d\n", enabled);
-	purple_account_clear_current_error(account);
-	purple_account_set_enabled(account, UI_ID, TRUE);
-	//purple_account_connect(account);
-	purple_savedstatus_activate(onlineStatus);
-	if(errorInfo = (PurpleConnectionErrorInfo *)purple_account_get_current_error(account)){
-		printf("%d\n", errorInfo -> type);
-	}else{
-		printf("no_error");
-	}	
 }
 
 static void connect_to_signals(void) {
@@ -335,27 +326,26 @@ typedef struct {
 } data;
 
 static int parse_json(const char *json_data, data *data) {
-    char *startptr, *endptr;
+    char *startptr, *endptr, statusSymbol;
     startptr = strstr(json_data, "status");
-    switch(startptr[9])
-    {
-        case 'w':
-            return -1;
-            break;
-        case 'n':
-            return 0;
-            break;
-	case 's':
-            break;
-    }
-
-
+	statusSymbol = startptr[9];
+	if(statusSymbol == 'w')
+	{
+		return -1;
+	}
+	
+	
     startptr = strstr(json_data, "week_number");
     data->week_number = (int)strtol(startptr+13,NULL,10);
     startptr = strstr(startptr, "day");
     strcpy(&(data->day[0]) ,&day_of_week[(int)strtol(startptr+6,NULL,10)][0]);
     startptr = strstr(startptr, "group");
     data->group = (int)strtol(startptr+8,NULL,10);
+	
+	if(statusSymbol == 'n')
+	{
+		return 0;
+	}
 
     for(int i = 0; i < 8; i++) {
         //time
@@ -401,27 +391,23 @@ static char * convert_from_utf(const guint16 utf_symbol, char *converted_data) {
     return converted_data;
 }
 
-static char * get_answer(const char *command, char *answer) {
-    if (!strcmp(command, "version")) {
-        strcpy(answer, "Версия: 0.1, билд от 11.09.2009");
-    } else if (!strcmp(command, "time") || !strcmp(command, "date")) {
-        time_t rawtime;
-        time(&rawtime);
-        struct tm *timeinfo = localtime(&rawtime);
-        sprintf(answer, "Date and time: %s", asctime(timeinfo));
-    } else if (!strcmp(command, "help")) {
-        strcpy(answer, "Список доступных комманд:<br>"
-                " schedule - выводит расписание для группы 4512<br>"
-                " schedule %group_number% - выводит расписание для группы %group_number%<br>"
-                " schedule tomorrow - выводит расписание на завтра для группы 4512<br>"
-                " schedule %group_number% tomorrow - выводит расписание на завтра для группы %group_number%<br>"
-                " time - выводит текущее время и дату<br>"
-                " date - выводит текущее время и дату<br>"
-                " version - выводит информацию о версии<br>"
-                " help - выводит это сообщение<br>"
-                );
-    } else if (strstr(command, "schedule") == command) {
-        char *curcharptr = (char *)command;
+typedef char (*COMMAND_HANDLER)(const char* command, char* answer);
+
+static char* date_time(const char *command, char *answer){
+	time_t rawtime;
+	time(&rawtime);
+	struct tm *timeinfo = localtime(&rawtime);
+	sprintf(answer, "Date and time: %s", asctime(timeinfo));
+	return answer;
+}
+
+static char* version(const char *command, char *answer){
+	strcpy(answer, "Версия: 0.1, билд от 11.09.2009");
+	return answer;
+}
+
+static char* schedule(const char *command, char *answer){
+char *curcharptr = (char *)command;
         int groupNumber = 4512;
         time_t date;
         time(&date);
@@ -462,10 +448,66 @@ static char * get_answer(const char *command, char *answer) {
                 //sprintf(answer, "%s_______________________________<br>", answer);
             }
         }
-    } else {
-        sprintf(answer, "%s", "Неизвестная команда.");
-    }
+		return answer;
+}
+
+static char* help(const char *command, char *answer){
+	strcpy(answer, "Список доступных комманд:<br>"
+                " schedule - выводит расписание для группы 4512<br>"
+                " schedule %group_number% - выводит расписание для группы %group_number%<br>"
+                " schedule tomorrow - выводит расписание на завтра для группы 4512<br>"
+                " schedule %group_number% tomorrow - выводит расписание на завтра для группы %group_number%<br>"
+                " time - выводит текущее время и дату<br>"
+                " date - выводит текущее время и дату<br>"
+                " version - выводит информацию о версии<br>"
+                " help - выводит это сообщение<br>"
+                );
+	return answer;
+}
+
+GHashTable *commands_table;
+
+static void init_commands_table()
+{
+	COMMANDS_TABLE_INIT();
+	COMMANDS_TABLE_ENTRY("date", date_time);
+	COMMANDS_TABLE_ENTRY("time", date_time);
+	COMMANDS_TABLE_ENTRY("version", version);
+	COMMANDS_TABLE_ENTRY("schedule", schedule);
+	COMMANDS_TABLE_ENTRY("help", help);
+}
+
+static char * get_answer(const char *command, char *answer) {
+
+	char* cmd_end = strstr(command, " ");
+	
+	//security threat, possible buffer overflow
+	char cmd[30];
+	int cmdLength;
+	
+	if(cmd_end){
+		cmdLength = cmd_end - command;
+		memcpy(cmd, command, cmdLength);
+		cmd[cmdLength] = '\0';
+	}else{
+		cmdLength = strlen(command);
+		strcpy(cmd, command);
+	}
+	
+	gpointer func = g_hash_table_lookup(commands_table, cmd);
+	if(!func){
+		strcpy(answer, "Неизвестная команда!");
+	} else {
+		((COMMAND_HANDLER)func)(command, answer);
+	}
+	
     return answer;
+}
+
+void quit_handler(int sig){
+	//purple_account_set_enabled(globalAccount, UI_ID, FALSE);
+	printf("Ctrl+C received. See u!\n");
+	exit(0);
 }
 
 int main(int argc, char *argv[]) {
@@ -498,17 +540,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    strcpy(day_of_week[1], "Понедельник");
-    strcpy(day_of_week[2], "Вторник");
-    strcpy(day_of_week[3], "Среда");
-    strcpy(day_of_week[4], "Четверг");
-    strcpy(day_of_week[5], "Пятница");
-    strcpy(day_of_week[6], "Суббота");
-    strcpy(day_of_week[7], "Воскресенье");
-
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
     signal(SIGCHLD, SIG_IGN);
+	signal(SIGINT, quit_handler);
 
     init_libpurple();
 
@@ -517,16 +552,18 @@ int main(int argc, char *argv[]) {
     PurplePlugin *icqPlugin = purple_plugins_find_with_name("ICQ");
     PurplePluginInfo *icqPluginInfo = icqPlugin->info;
 
-    PurpleAccount *account = purple_account_new(&uin[0], icqPluginInfo->id);
-    purple_account_set_password(account, &password[0]);
-    purple_account_set_enabled(account, UI_ID, TRUE);
+    globalAccount = purple_account_new(&uin[0], icqPluginInfo->id);
+    purple_account_set_password(globalAccount, &password[0]);
+    purple_account_set_enabled(globalAccount, UI_ID, TRUE);
 
-    purple_account_set_bool(account, "authorization", FALSE);
+    purple_account_set_bool(globalAccount, "authorization", FALSE);
 
     onlineStatus = purple_savedstatus_new(NULL, PURPLE_STATUS_AVAILABLE);
     purple_savedstatus_activate(onlineStatus);
+	offlineStatus = purple_savedstatus_new(NULL, PURPLE_STATUS_OFFLINE);
 
     connect_to_signals();
+	init_commands_table();
     g_main_loop_run(loop);
 
     return 0;
