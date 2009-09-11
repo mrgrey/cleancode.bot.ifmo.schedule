@@ -419,9 +419,9 @@ char *curcharptr = (char *)command;
             if (*curcharptr >= '0' && *curcharptr <= '9') {
                 groupNumber = atoi(curcharptr);
                 curcharptr += sizeof(groupNumber);
-            } else if(strstr((const char *)curcharptr, "tomorrow") && !is_tomorrow) {
+            } else if((strstr((const char *)curcharptr, "tomorrow") || strstr((const char *)curcharptr, "на завтра"))&& !is_tomorrow) {
                 date += 24 * 3600;
-                curcharptr += 8;
+                curcharptr += (*curcharptr == 't') ? 8 : 9;
                 is_tomorrow = TRUE;
             }
         }
@@ -465,16 +465,28 @@ static char* help(const char *command, char *answer){
 	return answer;
 }
 
-GHashTable *commands_table;
+GHashTable *commands_table = NULL;
 
 static void init_commands_table()
 {
+	if(commands_table)
+		return;
+	
 	COMMANDS_TABLE_INIT();
+	
 	COMMANDS_TABLE_ENTRY("date", date_time);
+	COMMANDS_TABLE_ENTRY("дата", date_time);
 	COMMANDS_TABLE_ENTRY("time", date_time);
+	COMMANDS_TABLE_ENTRY("время", date_time);
+	
 	COMMANDS_TABLE_ENTRY("version", version);
+	COMMANDS_TABLE_ENTRY("версия", version);
+	
 	COMMANDS_TABLE_ENTRY("schedule", schedule);
+	COMMANDS_TABLE_ENTRY("расписание", schedule);
+	
 	COMMANDS_TABLE_ENTRY("help", help);
+	COMMANDS_TABLE_ENTRY("помощь", help);
 }
 
 static char * get_answer(const char *command, char *answer) {
