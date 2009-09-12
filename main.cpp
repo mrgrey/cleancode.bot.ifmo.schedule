@@ -42,6 +42,8 @@
 char uin[10];
 char password[30];
 
+int requests_schedule_count = 0;
+
 static PurplePlugin *icqPlugin;
 static PurplePluginInfo *icqPluginInfo;
 static PurplePresence *presence;
@@ -421,7 +423,8 @@ static char* version(const char *command, char *answer){
 }
 
 static char* schedule(const char *command, char *answer){
-char *curcharptr = (char *)command;
+		requests_schedule_count++;
+		char *curcharptr = (char *)command;
         int groupNumber = 0;
         time_t date;
         time(&date);
@@ -492,6 +495,12 @@ static char* help(const char *command, char *answer){
 	return answer;
 }
 
+static char* stat(const char *command, char *answer){
+	sprintf(answer, "С запуска %d запросов расписания", requests_schedule_count);
+	return answer;
+}
+
+
 GHashTable *commands_table = NULL;
 
 static void init_commands_table()
@@ -514,6 +523,9 @@ static void init_commands_table()
 	
 	COMMANDS_TABLE_ENTRY("help", help);
 	COMMANDS_TABLE_ENTRY("помощь", help);
+	
+	COMMANDS_TABLE_ENTRY("stat", stat);
+	COMMANDS_TABLE_ENTRY("стат", stat);
 }
 
 static char * get_answer(const char *command, char *answer) {
