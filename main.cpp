@@ -85,7 +85,7 @@ void log_out(unsigned int category, const char *message){
 		fflush(LogFile);
 	}
 	else{
-		printf("%s%s", message, date);
+		printf("%s%s", date, message);
 		if(message[strlen(message)-1] != '\n')
 			printf("\n");
 	}
@@ -106,6 +106,76 @@ void wait(int seconds){
 int min(int a, int b){
 	return a<b?a:b;
 }
+
+//ATTENTION!! 
+/*
+char* str_to_lower(char* string){
+	char newSymbol;
+	for(int e = 0; e < strlen(string); e++){
+		switch(string[e]){
+			case 'Q':q
+			case 'W':w
+			case 'Ee
+			Rr
+			Tt
+			Yy
+			Uu
+			Ii
+			Oo
+			Pp
+			Aa
+			Ss
+			Dd
+			Ff
+			Gg
+			Hh
+			Jj
+			Kk
+			Ll
+			Zz
+			Xx
+			Cc
+			Vv
+			Bb
+			Nn
+			Mm
+			Йй
+			Цц
+			Уу
+			Кк
+			Ее
+			Нн
+			Гг
+			Шш
+			Щщ
+			Зз
+			Фф
+			Ыы
+			Вв
+			Аа
+			Пп
+			Рр
+			Оо
+			Лл
+			Дд
+			Яя
+			Чч
+			Сс
+			Мм
+			Ии
+			Тт
+			Ьь
+			Ёё
+			Хх
+			Ъъ
+			Жж
+			Ээ
+			Юю
+			Бб
+		}
+	}
+}
+*/
 
 static char day_of_week[][23]={
 	"Воскресенье",
@@ -224,7 +294,6 @@ static void write_conv(PurpleConversation *conv, const char *who, const char *al
 	
 	strcat(log_buffer, "\""); //1
 	log_buffer[strlen(log_buffer)] = 0;
-	printf("%d", strlen(log_buffer));
 	
 	log_out(LOG_CATEGORY_GENERAL, log_buffer);
 
@@ -487,7 +556,7 @@ static char* date_time(const char *command, char *answer){
 }
 
 static char* version(const char *command, char *answer){
-	strcpy(answer, "Версия: 0.2, билд от 12.09.2009");
+	strcpy(answer, "Версия: 0.2, билд от 15.09.2009");
 	return answer;
 }
 
@@ -613,9 +682,9 @@ static char * get_answer(const char *command, char *answer) {
 	memcpy(cmd, command, cmdLength);
 	
 	cmd[cmdLength] = 0;
-	printf("%s", cmd);
+	const char* normalized_command = purple_normalize_nocase(globalAccount, cmd);
 	
-	gpointer func = g_hash_table_lookup(commands_table, cmd);
+	gpointer func = g_hash_table_lookup(commands_table, normalized_command);
 	if(!func){
 		strcpy(answer, "Неизвестная команда!");
 	} else {
