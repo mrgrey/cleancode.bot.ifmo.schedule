@@ -559,6 +559,7 @@ static char* help(const char *command, char *answer){
                 " schedule %group_number% tomorrow - выводит расписание на завтра для группы %group_number%<br>"
                 " time - выводит текущее время и дату<br>"
                 " date - выводит текущее время и дату<br>"
+                " link %group_number% - выводит ссылку на печатную форму расписания для %group_number%<br>"
                 " version - выводит информацию о версии<br>"
                 " help - выводит это сообщение<br>"
                 "РУС:<br>"
@@ -566,6 +567,7 @@ static char* help(const char *command, char *answer){
                 " расписание %номер_группы% на завтра - выводит расписание на завтра для группы %номер_группы%<br>"
                 " время - выводит текущее время и дату<br>"
                 " дата - выводит текущее время и дату<br>"
+                " ссылка %номер_группы% - выводит ссылку на печатную форму расписания для %номер группы%<br>"
                 " версия - выводит информацию о версии<br>"
                 " помощь - выводит это сообщение<br>"
                 );
@@ -607,6 +609,19 @@ static char* show_log_tail(const char *command, char *answer){
 	return answer;
 }
 
+static char* show_schedule_link(const char *command, char *answer){
+    int groupNumber = 0;
+    char* wsptr = strstr(command, " ");
+    if(wsptr != 0) {
+        groupNumber = atoi(wsptr+1);
+        sprintf(answer, "Ссылка на печатную форму расписания: http://www.ifmo.ru/file/schedule.php?gr=%d", groupNumber);
+    }
+    if(groupNumber == 0) {
+        sprintf(answer, "Неверно задан номер группы!");
+    }
+    return answer;
+}
+
 GHashTable *commands_table = NULL;
 
 static void init_commands_table()
@@ -635,6 +650,9 @@ static void init_commands_table()
 	
 	COMMANDS_TABLE_ENTRY("лог", show_log_tail);
 	COMMANDS_TABLE_ENTRY("log", show_log_tail);
+
+        COMMANDS_TABLE_ENTRY("ссылка", show_schedule_link);
+	COMMANDS_TABLE_ENTRY("link", show_schedule_link);
 }
 
 static char * get_answer(const char *command, char *answer) {
