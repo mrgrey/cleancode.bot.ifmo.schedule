@@ -378,12 +378,20 @@ static void init_libpurple(void) {
 
 static void signed_on(PurpleConnection *gc, gpointer null) {
     PurpleAccount *account = purple_connection_get_account(gc);
-    printf("Account connected: %s %s\n", account->username, account->protocol_id);
+	
+	char buffer[200];
+	sprintf(buffer,"Account connected: %s %s\n", account->username, account->protocol_id);
+	
+	log_out(LOG_CATEGORY_GENERAL, buffer);
 }
 
 static void signed_off(PurpleConnection *gc, gpointer null) {
     PurpleAccount *account = purple_connection_get_account(gc);
-    printf("Account disconnected: %s %s\n", account->username, account->protocol_id);
+	
+	char buffer[200];
+	sprintf(buffer,"Account disconnected: %s %s\n", account->username, account->protocol_id);
+	
+	log_out(LOG_CATEGORY_GENERAL, buffer);
 }
 
 static void connect_to_signals(void) {
@@ -567,6 +575,7 @@ static char* schedule(const char *command, char *answer){
             if(strstr((const char *)curcharptr, " ") == 0)
                 break;
             curcharptr = strstr((const char *)curcharptr, " ") + 1;
+			//TODO FIX! 
             if (*curcharptr >= '0' && *curcharptr <= '9') {
                 groupNumber = atoi(curcharptr);
                 curcharptr += sizeof(groupNumber);
