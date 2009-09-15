@@ -862,7 +862,7 @@ int main(int argc, char *argv[]) {
 
     init_libpurple();
 
-    printf("libpurple initialized.\n");
+	log_out(LOG_CATEGORY_GENERAL, "libpurple initialized");
 
     icqPlugin = purple_plugins_find_with_name("ICQ");
     icqPluginInfo = icqPlugin->info;
