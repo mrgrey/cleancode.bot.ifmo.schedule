@@ -16,6 +16,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+//#include <math.h>
 
 // <editor-fold defaultstate="collapsed" desc="define section">
 #define CUSTOM_USER_DIRECTORY  "/dev/null"
@@ -53,28 +54,56 @@ static PurpleStatus* statuses[STATUS_MAX_ID + 1];
 
 static PurpleAccount *globalAccount;
 
-#define LOG_CATEGORY_GENERAL 0x1
 #define LOG_CATEGORY_NONE 0
+
+#define LOG_CATEGORY_GENERAL 0x1
+#define LOG_CATEGORY_FUNC_CALL 0x2
+#define LOG_CATEGORY_INCOMING 0x4
+
 #define LOG_CATEGORY_ALL 0xFFFFFFFF
 
 #define LOG_BUFFER_LENGTH 200
 
+#define LOG_DIRECTION_CONSOLE 1
+#define LOG_DIRECTION_FILE 2
+
 #define MAX_PATH 255
 
 static unsigned int LogCategories = LOG_CATEGORY_ALL;
+static unsigned int log_directions = 0;
 
 static FILE* LogFile = NULL;
 static char log_file_name[MAX_PATH];
 
-bool log_init(const char* logFileName){
-	if(LogFile)
-		return false;
-	LogFile = fopen(logFileName, "a");
+int log2(int number){
+	int result = 1;
+	while(number > 1){
+		number = number>>1;
+		result++;
+	}	
+	return result;
+}
+
+const char* log_categories_names[]={
+	"- general - ", //LOG_CATEGORY_GENERAL
+	"- func call - ", //LOG_CATEGORY_FUNC_CALL
+	"- incoming - " //LOG_CATEGORY_INCOMING 
+};
+
+bool log_init(const char* new_log_file_name){
 	
-	if(LogFile)
-		strcpy(log_file_name, logFileName);
-		
-	return LogFile != NULL;
+	if(new_log_file_name ){
+		if (LogFile = fopen(new_log_file_name, "a")){
+			strcpy(log_file_name, new_log_file_name);
+			log_directions |= LOG_DIRECTION_FILE;
+		}
+	}
+	else
+		log_directions |= LOG_DIRECTION_CONSOLE;
+	
+	fflush(stdout);
+	
+	return true;
 }
 
 void log_out(unsigned int category, const char *message){
@@ -82,20 +111,29 @@ void log_out(unsigned int category, const char *message){
 		return;
 	
 	char date[24];
+
 	const time_t now = time(NULL);
 	strcpy(date, purple_utf8_strftime("[%d.%m.%Y %H:%M:%S] ", localtime(&now)));
 	
-	if(LogFile){
+	const char* category_name = log_categories_names[(int)log2(category)];
+	
+	if(log_directions & LOG_DIRECTION_FILE){
+	
 		fwrite(date, 1, strlen(date),LogFile);
+		
+		fwrite(category_name, 1, strlen(category_name), LogFile);
+		
 		fwrite(message, 1, strlen(message), LogFile);
 		if(message[strlen(message)-1] != '\n')
 			fwrite("\n", 1, 1, LogFile);
 		fflush(LogFile);
 	}
-	else{
-		printf("%s%s", date, message);
+	
+	if(log_directions & LOG_DIRECTION_CONSOLE){
+		printf("%s%s%s", date, category_name, message);
 		if(message[strlen(message)-1] != '\n')
 			printf("\n");
+		fflush(stdout);
 	}
 }
 
@@ -200,6 +238,8 @@ static char * get_answer(const char *command, char *answer);
 
 static void write_conv(PurpleConversation *conv, const char *who, const char *alias,
         const char *message, PurpleMessageFlags flags, time_t mtime) {
+	log_out(LOG_CATEGORY_FUNC_CALL, "write_conv() called");
+		
     if (!(flags & PURPLE_MESSAGE_RECV))
         return;
 
@@ -219,6 +259,7 @@ static void write_conv(PurpleConversation *conv, const char *who, const char *al
 	*/	
 	
 	//бредокод, работает
+	//LOG VERY BIG CODE PART BEGIN============================================
 	char log_buffer[LOG_BUFFER_LENGTH];
 	strcpy(log_buffer, conversation_name);
 	strcat(log_buffer, ": \""); //3
@@ -234,12 +275,15 @@ static void write_conv(PurpleConversation *conv, const char *who, const char *al
 	strcat(log_buffer, "\""); //1
 	log_buffer[strlen(log_buffer)] = 0;
 	
-	log_out(LOG_CATEGORY_GENERAL, log_buffer);
-
+	log_out(LOG_CATEGORY_INCOMING, log_buffer);
+	//LOG VERY BIG CODE PART END ============================================
+	
     char send_message[5120];
     get_answer(message, &send_message[0]);
     
     purple_conv_im_send(PURPLE_CONV_IM(conv), send_message);
+	
+	log_out(LOG_CATEGORY_FUNC_CALL, "write_conv() exited");
 }
 
 static PurpleConversationUiOps conv_uiops = {
@@ -357,6 +401,8 @@ static size_t write_data(char *buffer, size_t size, size_t nmemb, char *userp) {
 }
 
 static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
+	log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() called");
+	
     CURL *curl;
     CURLcode res;
 	char dateStr[11];
@@ -378,12 +424,16 @@ static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
         curl_easy_cleanup(curl);
     }
 
+	log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() exited");
+	
     return buffer;
 }
 
 static char * convert_from_utf(const guint16 utf_symbol, char *converted_data);
 
 static char * decode_utf_literals(const char *json_data, char *buffer) {
+	log_out(LOG_CATEGORY_FUNC_CALL, "decode_utf_literals() called");
+	
     char *startptr = buffer;
     char tdata;
     guint16 tvalue;
@@ -402,6 +452,8 @@ static char * decode_utf_literals(const char *json_data, char *buffer) {
         }
         *buffer = 0;
     }    return startptr;
+	
+	log_out(LOG_CATEGORY_FUNC_CALL, "decode_utf_literals() exited");
 }
 
 typedef struct{
@@ -419,6 +471,8 @@ typedef struct {
 } data;
 
 static int parse_json(const char *json_data, data *data) {
+	log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() called");
+
     char *startptr, *endptr, statusSymbol;
     startptr = strstr(json_data, "status");
 	statusSymbol = startptr[9];
@@ -466,10 +520,14 @@ static int parse_json(const char *json_data, data *data) {
         data->lessons[i].person_name[endptr-startptr-15] = 0;
     }
 
+	log_out(LOG_CATEGORY_FUNC_CALL, "convert_from_utf() exited");
     return 8;
 }
 
 static char * convert_from_utf(const guint16 utf_symbol, char *converted_data) {
+	//DEBUG LOG OUTPUT
+	log_out(LOG_CATEGORY_FUNC_CALL, "convert_from_utf() called");
+	
     if( utf_symbol <= 0x7F ) {
         *converted_data = (unsigned char)utf_symbol;
     }else if( utf_symbol <= 0x7FF) {
@@ -481,6 +539,10 @@ static char * convert_from_utf(const guint16 utf_symbol, char *converted_data) {
     } else {
         *converted_data = '?';
     }
+	
+	//DEBUG LOG OUTPUT
+	log_out(LOG_CATEGORY_FUNC_CALL, "convert_from_utf() exited");
+	
     return converted_data;
 }
 
@@ -500,6 +562,10 @@ static char* version(const char *command, char *answer){
 }
 
 static char* schedule(const char *command, char *answer){
+		//DEBUG LOG OUTPUT
+		log_out(LOG_CATEGORY_FUNC_CALL, "schedule() called");
+		
+		
 		requests_schedule_count++;
 		char *curcharptr = (char *)command;
         int groupNumber = 0;
@@ -522,32 +588,36 @@ static char* schedule(const char *command, char *answer){
 		
 		if(!groupNumber){
 			strcpy(answer, "Пожалуйста, укажите номер группы.");
-			return answer;
-		}
+		}else{
 		
 
-        char buffer[5120], out[5120];
-        get_schedule_json(groupNumber, &buffer[0], date);
-        decode_utf_literals(&buffer[0], &out[0]);
-        data data;
-        int lessons = parse_json(out, &data);
+	        char buffer[5120], out[5120];
+	        get_schedule_json(groupNumber, &buffer[0], date);
+	        decode_utf_literals(&buffer[0], &out[0]);
+	        data data;
+	        int lessons = parse_json(out, &data);
 
-        if (lessons == -1) {
-            strcpy(answer, "Недопустимый номер группы");
-        } else if (lessons == 0) {
-            sprintf(answer, "%s, %d неделя<br>Группа: %d<br><br>", data.day, data.week_number, data.group);
-            strcat(answer, "<br>Нет занятий");
-        } else {
-            sprintf(answer, "%s, %d неделя<br>Группа: %d<br><br>", data.day, data.week_number, data.group);
-            sprintf(answer, "%s_______________________________<br>", answer);
-            for (int i = 0; i < lessons - 1; i++) {
-                if (i) {
-                    sprintf(answer, "%s_______________________________<br>", answer);
-                }
-                sprintf(answer, "%s%s %s - %s<br>%s<br>", answer, data.lessons[i].time, data.lessons[i].place, data.lessons[i].person_name, data.lessons[i].subject);
-                //sprintf(answer, "%s_______________________________<br>", answer);
-            }
-        }
+	        if (lessons == -1) {
+	            strcpy(answer, "Недопустимый номер группы");
+	        } else if (lessons == 0) {
+	            sprintf(answer, "%s, %d неделя<br>Группа: %d<br><br>", data.day, data.week_number, data.group);
+	            strcat(answer, "<br>Нет занятий");
+	        } else {
+	            sprintf(answer, "%s, %d неделя<br>Группа: %d<br><br>", data.day, data.week_number, data.group);
+	            sprintf(answer, "%s_______________________________<br>", answer);
+	            for (int i = 0; i < lessons - 1; i++) {
+	                if (i) {
+	                    sprintf(answer, "%s_______________________________<br>", answer);
+	                }
+	                sprintf(answer, "%s%s %s - %s<br>%s<br>", answer, data.lessons[i].time, data.lessons[i].place, data.lessons[i].person_name, data.lessons[i].subject);
+	                //sprintf(answer, "%s_______________________________<br>", answer);
+	            }
+	        }
+		}
+		
+		//DEBUG LOG OUTPUT
+		log_out(LOG_CATEGORY_FUNC_CALL, "schedule() exited");
+		
 		return answer;
 }
 
@@ -577,7 +647,7 @@ static char* stat(const char *command, char *answer){
 	return answer;
 }
 
-static char* show_log_tail(const char *command, char *answer){
+static char* show_log_tail(const char *command, char *answer){	
 	if(!log_file_name[0]){
 		strcpy(answer, "Файловое логирование отключено");
 	}else{
@@ -638,6 +708,8 @@ static void init_commands_table()
 }
 
 static char * get_answer(const char *command, char *answer) {
+	//DEBUG LOG OUTPUT
+	log_out(LOG_CATEGORY_FUNC_CALL, "get_answer() called");
 
 	char* cmd_end = strstr(command, " ");
 	
@@ -661,6 +733,8 @@ static char * get_answer(const char *command, char *answer) {
 	} else {
 		((COMMAND_HANDLER)func)(command, answer);
 	}
+	
+	log_out(LOG_CATEGORY_FUNC_CALL, "get_answer() exited");
 	
     return answer;
 }
@@ -703,22 +777,24 @@ int main(int argc, char *argv[]) {
     //char uin[10] = "595266840";
     
 
-    const int optIcgLogin = 1;
-    const int optIcgPass = 2;
-	const int optLogPath = 3;
+    const int optIcgLogin = 0x1;
+    const int optIcgPass = 0x2;
+	const int optLogFile = 0x4;
+	const int optLogConsole = 0x8;
 	
 	int required_options = optIcgLogin | optIcgPass;
 
     static struct option long_options[] = {
         {"icq.login", required_argument, 0, optIcgLogin},
         {"icq.pass", required_argument, 0, optIcgPass},
-		{"log.path", required_argument, 0, optLogPath} 
+		{"log.file", required_argument, 0, optLogFile},
+		{"log.console", no_argument, 0, optLogConsole}
     };
 
     int option_index = 0;
 
     int c = -1;
-
+	
     while ((c = getopt_long(argc, argv, "", long_options, &option_index)) != -1) {
         switch (c) {
             case optIcgLogin:
@@ -729,8 +805,11 @@ int main(int argc, char *argv[]) {
                 strcpy(&password[0], optarg);
 				required_options &= ~optIcgPass;
                 break;
-			case optLogPath:
+			case optLogFile:
 				log_init(optarg);
+				break;
+			case optLogConsole:
+				log_init(NULL);
 				break;
         }
     }
@@ -739,7 +818,6 @@ int main(int argc, char *argv[]) {
 		show_usage();
 		exit(0);
 	}
-	
 
     GMainLoop *loop = g_main_loop_new(NULL, FALSE);
 
