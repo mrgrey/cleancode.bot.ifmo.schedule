@@ -829,7 +829,7 @@ int main(int argc, char *argv[]) {
                     LogCategories |= LOG_CATEGORY_NONE;
                 } else {
                     if(strstr(optarg, "f")) {
-                        LogCategories |= LOG_CATEGORY_FUNC_CALL;
+                        LogCategories &= LOG_CATEGORY_FUNC_CALL;
                     }
                     if(strstr(optarg, "i")) {
                         LogCategories |= LOG_CATEGORY_INCOMING;
