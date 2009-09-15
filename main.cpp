@@ -794,8 +794,9 @@ int main(int argc, char *argv[]) {
     static struct option long_options[] = {
         {"icq.login", required_argument, 0, optIcgLogin},
         {"icq.pass", required_argument, 0, optIcgPass},
-		{"log.file", required_argument, 0, optLogFile},
-		{"log.console", no_argument, 0, optLogConsole}
+        {"log.file", required_argument, 0, optLogFile},
+        {"log.console", no_argument, 0, optLogConsole},
+        {"log.level", required_argument, 0, optLogConsole}
     };
 
     int option_index = 0;
@@ -820,7 +821,6 @@ int main(int argc, char *argv[]) {
 				break;
         }
     }
-	
 	if(required_options){
 		show_usage();
 		exit(0);
