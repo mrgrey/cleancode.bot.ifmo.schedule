@@ -76,7 +76,7 @@ static FILE* LogFile = NULL;
 static char log_file_name[MAX_PATH];
 
 int log2(int number){
-	int result = 1;
+	int result = 0;
 	while(number > 1){
 		number = number>>1;
 		result++;
@@ -115,10 +115,10 @@ void log_out(unsigned int category, const char *message){
 	const time_t now = time(NULL);
 	strcpy(date, purple_utf8_strftime("[%d.%m.%Y %H:%M:%S] ", localtime(&now)));
 	
-	const char* category_name = log_categories_names[(int)log2(category)];
+	const char* category_name = log_categories_names[log2(category)];
 	
 	if(log_directions & LOG_DIRECTION_FILE){
-	
+
 		fwrite(date, 1, strlen(date),LogFile);
 		
 		fwrite(category_name, 1, strlen(category_name), LogFile);
