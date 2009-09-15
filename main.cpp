@@ -835,7 +835,7 @@ int main(int argc, char *argv[]) {
                 if(strstr(optarg, "a")) {
                     LogCategories |= LOG_CATEGORY_ALL;
                 } else if(strstr(optarg, "n")) {
-                    LogCategories |= LOG_CATEGORY_NONE;
+                    LogCategories &= LOG_CATEGORY_NONE;
                 } else {
                     if(strstr(optarg, "f")) {
                         LogCategories |= LOG_CATEGORY_FUNC_CALL;
