@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
 
 // <editor-fold defaultstate="collapsed" desc="define section">
 #define CUSTOM_USER_DIRECTORY  "/dev/null"
@@ -52,10 +53,58 @@ static PurpleStatus* statuses[STATUS_MAX_ID + 1];
 
 static PurpleAccount *globalAccount;
 
+#define LOG_CATEGORY_GENERAL 0x1
+#define LOG_CATEGORY_NONE 0
+#define LOG_CATEGORY_ALL 0xFFFFFFFF
+
+#define LOG_BUFFER_LENGTH 200
+
+static unsigned int LogCategories = LOG_CATEGORY_ALL;
+
+static FILE* LogFile = NULL;
+
+bool log_init(const char* logFileName){
+	if(LogFile)
+		return false;
+	LogFile = fopen(logFileName, "a");
+}
+
+void log_out(unsigned int category, const char *message){
+	if(!(category & LogCategories))
+		return;
+	
+	char date[24];
+	const time_t now = time(NULL);
+	strcpy(date, purple_utf8_strftime("[%d.%m.%Y %H:%M:%S] ", localtime(&now)));
+	
+	if(LogFile){
+		fwrite(date, 1, strlen(date),LogFile);
+		fwrite(message, 1, strlen(message), LogFile);
+		if(message[strlen(message)-1] != '\n')
+			fwrite("\n", 1, 1, LogFile);
+		fflush(LogFile);
+	}
+	else{
+		printf("%s%s", message, date);
+		if(message[strlen(message)-1] != '\n')
+			printf("\n");
+	}
+}
+
+void log_uninit(){
+	if(LogFile)
+		return;
+	fclose(LogFile);
+}
+
 void wait(int seconds){
 	clock_t endwait;
 	endwait=clock()+seconds*CLOCKS_PER_SEC;
 	while (clock()<endwait);
+}
+
+int min(int a, int b){
+	return a<b?a:b;
 }
 
 static char day_of_week[][23]={
@@ -153,15 +202,35 @@ static void write_conv(PurpleConversation *conv, const char *who, const char *al
     else
         name = NULL;
 
-    printf("(%s) %s %s: %s\n", purple_conversation_get_name(conv),
+	const char* conversation_name = purple_conversation_get_name(conv);
+		
+    /*printf("(%s) %s %s: %s\n", conversation_name,
             purple_utf8_strftime("(%H:%M:%S)", localtime(&mtime)),
             name, message);
+	*/	
+	
+	//бредокод, работает
+	char log_buffer[LOG_BUFFER_LENGTH];
+	strcpy(log_buffer, conversation_name);
+	strcat(log_buffer, ": \""); //3
 
-    time_t rawtime;
+	int max_message_to_copy = LOG_BUFFER_LENGTH - strlen(conversation_name) - 5;
+	
+	int length_to_copy = max_message_to_copy <= strlen(message) ? max_message_to_copy : strlen(message);
+	
+	memcpy(log_buffer + strlen(conversation_name) + 3, message, length_to_copy);
+	
+	log_buffer[strlen(conversation_name) + 3 + length_to_copy] = 0;
+	
+	strcat(log_buffer, "\""); //1
+	log_buffer[strlen(log_buffer)] = 0;
+	printf("%d", strlen(log_buffer));
+	
+	log_out(LOG_CATEGORY_GENERAL, log_buffer);
 
     char send_message[5120];
     get_answer(message, &send_message[0]);
-    //printf("%s", send_message);
+    
     purple_conv_im_send(PURPLE_CONV_IM(conv), send_message);
 }
 
@@ -536,14 +605,15 @@ static char * get_answer(const char *command, char *answer) {
 	char cmd[30];
 	int cmdLength;
 	
-	if(cmd_end){
-		cmdLength = cmd_end - command;
-		memcpy(cmd, command, cmdLength);
-		cmd[cmdLength] = '\0';
-	}else{
-		cmdLength = strlen(command);
-		strcpy(cmd, command);
-	}
+	cmdLength = (cmd_end) ? (cmd_end - command) : strlen(command);
+	cmdLength = min(cmdLength, 29);
+	
+	
+	
+	memcpy(cmd, command, cmdLength);
+	
+	cmd[cmdLength] = 0;
+	printf("%s", cmd);
 	
 	gpointer func = g_hash_table_lookup(commands_table, cmd);
 	if(!func){
@@ -595,12 +665,14 @@ int main(int argc, char *argv[]) {
 
     const int optIcgLogin = 1;
     const int optIcgPass = 2;
+	const int optLogPath = 3;
 	
 	int required_options = optIcgLogin | optIcgPass;
 
     static struct option long_options[] = {
         {"icq.login", required_argument, 0, optIcgLogin},
-        {"icq.pass", required_argument, 0, optIcgPass}
+        {"icq.pass", required_argument, 0, optIcgPass},
+		{"log.path", required_argument, 0, optLogPath} 
     };
 
     int option_index = 0;
@@ -617,6 +689,9 @@ int main(int argc, char *argv[]) {
                 strcpy(&password[0], optarg);
 				required_options &= ~optIcgPass;
                 break;
+			case optLogPath:
+				log_init(optarg);
+				break;
         }
     }
 	
@@ -644,7 +719,6 @@ int main(int argc, char *argv[]) {
 	init_commands_table();
     g_main_loop_run(loop);
 
+	log_uninit();
     return 0;
 }
-
-
