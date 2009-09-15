@@ -429,21 +429,32 @@ static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
     return buffer;
 }
 
-static char * convert_from_utf(const guint16 utf_symbol, char *converted_data);
-
 static char * decode_utf_literals(const char *json_data, char *buffer) {
 	log_out(LOG_CATEGORY_FUNC_CALL, "decode_utf_literals() called");
 	
     char *startptr = buffer;
     char tdata;
-    guint16 tvalue;
+    guint16 utf_symbol;
     char *curptr = (char *)json_data;
     while(*curptr != '\0') {
         if(*curptr == '\\' && *(curptr+1) == 'u') {
             tdata = *(curptr+6);
             *(curptr+6) = '\\';
-            tvalue = (guint16)strtol(curptr+2,NULL,16);
-            convert_from_utf(tvalue, buffer);
+            utf_symbol = (guint16)strtol(curptr+2,NULL,16);
+
+            //Convert character from utf
+            if (utf_symbol <= 0x7F) {
+                *buffer = (unsigned char) utf_symbol;
+            } else if (utf_symbol <= 0x7FF) {
+                guint16 t_converted_data = 0x6 << 13;
+                t_converted_data |= (utf_symbol & (0x1F << 6)) << 2;
+                t_converted_data |= 0x2 << 6;
+                t_converted_data |= utf_symbol & 0x3F;
+                *((guint16 *) buffer) = ((t_converted_data & 0xFF00) >> 8) | ((t_converted_data & 0xFF) << 8);
+            } else {
+                *buffer = '?';
+            }
+
             buffer += 2;
             *(curptr+6) = tdata;
             curptr += 6;
@@ -520,30 +531,8 @@ static int parse_json(const char *json_data, data *data) {
         data->lessons[i].person_name[endptr-startptr-15] = 0;
     }
 
-	log_out(LOG_CATEGORY_FUNC_CALL, "convert_from_utf() exited");
+        log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
     return 8;
-}
-
-static char * convert_from_utf(const guint16 utf_symbol, char *converted_data) {
-	//DEBUG LOG OUTPUT
-	log_out(LOG_CATEGORY_FUNC_CALL, "convert_from_utf() called");
-	
-    if( utf_symbol <= 0x7F ) {
-        *converted_data = (unsigned char)utf_symbol;
-    }else if( utf_symbol <= 0x7FF) {
-        guint16 tdata = 0x6 << 13 ;
-        tdata |= (utf_symbol & (0x1F << 6)) << 2;
-        tdata |= 0x2 << 6;
-        tdata |= utf_symbol & 0x3F;
-        *((guint16 *)converted_data) = ((tdata & 0xFF00) >> 8) | ((tdata & 0xFF) << 8);
-    } else {
-        *converted_data = '?';
-    }
-	
-	//DEBUG LOG OUTPUT
-	log_out(LOG_CATEGORY_FUNC_CALL, "convert_from_utf() exited");
-	
-    return converted_data;
 }
 
 typedef char (*COMMAND_HANDLER)(const char* command, char* answer);
