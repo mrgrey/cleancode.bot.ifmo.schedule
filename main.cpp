@@ -59,14 +59,22 @@ static PurpleAccount *globalAccount;
 
 #define LOG_BUFFER_LENGTH 200
 
+#define MAX_PATH 255
+
 static unsigned int LogCategories = LOG_CATEGORY_ALL;
 
 static FILE* LogFile = NULL;
+static char log_file_name[MAX_PATH];
 
 bool log_init(const char* logFileName){
 	if(LogFile)
 		return false;
 	LogFile = fopen(logFileName, "a");
+	
+	if(LogFile)
+		strcpy(log_file_name, logFileName);
+		
+	return LogFile != NULL;
 }
 
 void log_out(unsigned int category, const char *message){
@@ -487,7 +495,7 @@ static char* date_time(const char *command, char *answer){
 }
 
 static char* version(const char *command, char *answer){
-	strcpy(answer, "Версия: 0.2, билд от 15.09.2009");
+	strcpy(answer, "Версия: 0.2.5, билд от 15.09.2009");
 	return answer;
 }
 
@@ -569,6 +577,35 @@ static char* stat(const char *command, char *answer){
 	return answer;
 }
 
+static char* show_log_tail(const char *command, char *answer){
+	if(!log_file_name[0]){
+		strcpy(answer, "Файловое логирование отключено");
+	}else{
+		char inbuf[BUFSIZ];
+		char cmd[MAX_PATH + 12];
+		sprintf(cmd, "tail -n 20 %s", log_file_name);
+
+		char *answer_position = answer;
+		
+		FILE *cmd_out_stream;
+		answer[0]=0;
+		if ((cmd_out_stream = popen(cmd, "r")) != NULL)
+			while (fgets(inbuf, BUFSIZ, cmd_out_stream) != NULL){
+				for(int e = 0; e<strlen(inbuf); e++){
+					if(inbuf[e] == '\n'){
+						memcpy(answer_position, "<br>", 4);
+						answer_position += 4;
+					}else{
+						*(answer_position++) = inbuf[e];
+					}
+				}
+			}
+		*answer_position = 0;
+
+		pclose(cmd_out_stream);
+	}
+	return answer;
+}
 
 GHashTable *commands_table = NULL;
 
@@ -595,6 +632,9 @@ static void init_commands_table()
 	
 	COMMANDS_TABLE_ENTRY("stat", stat);
 	COMMANDS_TABLE_ENTRY("стат", stat);
+	
+	COMMANDS_TABLE_ENTRY("лог", show_log_tail);
+	COMMANDS_TABLE_ENTRY("log", show_log_tail);
 }
 
 static char * get_answer(const char *command, char *answer) {
