@@ -69,7 +69,7 @@ static PurpleAccount *globalAccount;
 
 #define MAX_PATH 255
 
-static unsigned int LogCategories = LOG_CATEGORY_ALL;
+static unsigned int LogCategories = 0;
 static unsigned int log_directions = 0;
 
 static FILE* LogFile = NULL;
@@ -497,6 +497,7 @@ static int parse_json(const char *json_data, data *data) {
 	statusSymbol = startptr[9];
 	if(statusSymbol == 'w')
 	{
+            log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
 		return -1;
 	}
 	
@@ -510,6 +511,7 @@ static int parse_json(const char *json_data, data *data) {
 	
 	if(statusSymbol == 'n')
 	{
+            log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
 		return 0;
 	}
 
@@ -795,8 +797,9 @@ int main(int argc, char *argv[]) {
 
     const int optIcgLogin = 0x1;
     const int optIcgPass = 0x2;
-	const int optLogFile = 0x4;
-	const int optLogConsole = 0x8;
+    const int optLogFile = 0x4;
+    const int optLogConsole = 0x8;
+    const int optLogLevel = 0x16;
 	
 	int required_options = optIcgLogin | optIcgPass;
 
@@ -805,7 +808,7 @@ int main(int argc, char *argv[]) {
         {"icq.pass", required_argument, 0, optIcgPass},
         {"log.file", required_argument, 0, optLogFile},
         {"log.console", no_argument, 0, optLogConsole},
-        {"log.level", required_argument, 0, optLogConsole}
+        {"log.level", required_argument, 0, optLogLevel}
     };
 
     int option_index = 0;
@@ -822,12 +825,27 @@ int main(int argc, char *argv[]) {
                 strcpy(&password[0], optarg);
 				required_options &= ~optIcgPass;
                 break;
-			case optLogFile:
-				log_init(optarg);
-				break;
-			case optLogConsole:
-				log_init(NULL);
-				break;
+            case optLogFile:
+                log_init(optarg);
+                break;
+            case optLogConsole:
+                log_init(NULL);
+                break;
+            case optLogLevel:
+                if(strstr(optarg, "a")) {
+                    LogCategories |= LOG_CATEGORY_ALL;
+                } else {
+                    if(strstr(optarg, "f")) {
+                        LogCategories |= LOG_CATEGORY_FUNC_CALL;
+                    }
+                    if(strstr(optarg, "i")) {
+                        LogCategories |= LOG_CATEGORY_INCOMING;
+                    }
+                    if(strstr(optarg, "g")) {
+                        LogCategories |= LOG_CATEGORY_GENERAL;
+                    }
+                }
+                break;
         }
     }
 	if(required_options){
