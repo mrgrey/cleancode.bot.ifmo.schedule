@@ -238,10 +238,12 @@ static char * get_answer(const char *command, char *answer);
 
 static void write_conv(PurpleConversation *conv, const char *who, const char *alias,
         const char *message, PurpleMessageFlags flags, time_t mtime) {
-	log_out(LOG_CATEGORY_FUNC_CALL, "write_conv() called");
+	
 		
     if (!(flags & PURPLE_MESSAGE_RECV))
         return;
+		
+	log_out(LOG_CATEGORY_FUNC_CALL, "write_conv() called");
 
     const char *name;
     if (alias && *alias)
