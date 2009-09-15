@@ -69,7 +69,7 @@ static PurpleAccount *globalAccount;
 
 #define MAX_PATH 255
 
-static unsigned int LogCategories = 0;
+static unsigned int LogCategories = LOG_CATEGORY_GENERAL;
 static unsigned int log_directions = 0;
 
 static FILE* LogFile = NULL;
@@ -834,6 +834,8 @@ int main(int argc, char *argv[]) {
             case optLogLevel:
                 if(strstr(optarg, "a")) {
                     LogCategories |= LOG_CATEGORY_ALL;
+                } else if(strstr(optarg, "n")) {
+                    LogCategories |= LOG_CATEGORY_NONE;
                 } else {
                     if(strstr(optarg, "f")) {
                         LogCategories |= LOG_CATEGORY_FUNC_CALL;
