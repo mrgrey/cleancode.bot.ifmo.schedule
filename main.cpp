@@ -405,14 +405,24 @@ static void connect_to_signals(void) {
 
 }
 
-static size_t write_data(char *buffer, size_t size, size_t nmemb, char *userp) {
-    strcpy(userp, buffer);
+typedef struct{
+    void *buffer;
+    int offset;
+}write_data_buffer;
+
+static size_t write_data(char *buffer, size_t size, size_t nmemb, write_data_buffer *data_buffer) {
+    strcpy((char *)(data_buffer->buffer)+(data_buffer->offset), buffer);
+    data_buffer->offset += strlen(buffer);
     return size*nmemb;
 }
 
 static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
 	log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() called");
-	
+
+        write_data_buffer data_buffer;
+        data_buffer.buffer = buffer;
+        data_buffer.offset = 0;
+
     CURL *curl;
     CURLcode res;
 	char dateStr[11];
@@ -429,11 +439,12 @@ static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
         sprintf(&url[0], "http://faculty.ifmo.ru/gadgets/spbsuitmo-schedule-lessons/data/lessons-proxy-json.php?gr=%d&date=%s", group, dateStr);
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, buffer);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data_buffer);
         res = curl_easy_perform(curl);
         curl_easy_cleanup(curl);
     }
 
+    buffer = (char *)data_buffer.buffer;
 	log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() exited");
 	
     return buffer;
