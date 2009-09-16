@@ -720,6 +720,7 @@ static void init_commands_table()
 	COMMANDS_TABLE_ENTRY("help", help);
 	COMMANDS_TABLE_ENTRY("помощь", help);
 	COMMANDS_TABLE_ENTRY("!help", help);
+        COMMANDS_TABLE_ENTRY("?", help);
 	
 	COMMANDS_TABLE_ENTRY("stat", stat);
 	COMMANDS_TABLE_ENTRY("стат", stat);
