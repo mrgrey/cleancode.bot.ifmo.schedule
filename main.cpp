@@ -641,6 +641,10 @@ static char* help(const char *command, char *answer){
 					" ссылка 1234 - выводит ссылку на печатную форму расписания для группы 1234<br>"
 					" версия - выводит информацию о версии<br>"
 					" помощь - выводит это сообщение<br>"
+					"------------------------------------------------------------<br>"
+					"Вы можете связаться с разработчиками по e-mail:<br>"
+					" denis.bykov@cleancode.ru<br>"
+					" chuyko.yury@cleancode.ru"
 					);
 	return answer;
 }
@@ -715,6 +719,7 @@ static void init_commands_table()
 	
 	COMMANDS_TABLE_ENTRY("help", help);
 	COMMANDS_TABLE_ENTRY("помощь", help);
+	COMMANDS_TABLE_ENTRY("!help", help);
 	
 	COMMANDS_TABLE_ENTRY("stat", stat);
 	COMMANDS_TABLE_ENTRY("стат", stat);
