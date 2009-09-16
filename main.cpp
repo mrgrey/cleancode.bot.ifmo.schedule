@@ -748,7 +748,9 @@ static char * get_answer(const char *command, char *answer) {
 	
 	gpointer func = g_hash_table_lookup(commands_table, normalized_command);
 	if(!func){
-		strcpy(answer, "Неизвестная команда!");
+		strcpy(answer,  "Неизвестная команда. Возможно, Вы опечатались.<br>"
+						"Попробуйте ввести help или помощь, чтобы просмотреть краткую информацию по доступным командам."
+		);
 	} else {
 		((COMMAND_HANDLER)func)(command, answer);
 	}
