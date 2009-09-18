@@ -43,6 +43,7 @@
 
 char uin[10];
 char password[30];
+char datasource_url[255];
 
 int requests_schedule_count = 0;
 
@@ -72,7 +73,7 @@ static PurpleAccount *globalAccount;
 static unsigned int LogCategories = LOG_CATEGORY_GENERAL;
 static unsigned int log_directions = 0;
 
-static FILE* LogFile = NULL;
+static FILE* log_file = NULL;
 static char log_file_name[MAX_PATH];
 
 int log2(int number){
@@ -93,7 +94,7 @@ const char* log_categories_names[]={
 bool log_init(const char* new_log_file_name){
 	
 	if(new_log_file_name ){
-		if (LogFile = fopen(new_log_file_name, "a")){
+		if (log_file = fopen(new_log_file_name, "a")){
 			strcpy(log_file_name, new_log_file_name);
 			log_directions |= LOG_DIRECTION_FILE;
 		}
@@ -117,16 +118,16 @@ void log_out(unsigned int category, const char *message){
 	
 	const char* category_name = log_categories_names[log2(category)];
 	
-	if(log_directions & LOG_DIRECTION_FILE){
+	if((log_directions & LOG_DIRECTION_FILE) && log_file){
 
-		fwrite(date, 1, strlen(date),LogFile);
+		fwrite(date, 1, strlen(date),log_file);
 		
-		fwrite(category_name, 1, strlen(category_name), LogFile);
+		fwrite(category_name, 1, strlen(category_name), log_file);
 		
-		fwrite(message, 1, strlen(message), LogFile);
+		fwrite(message, 1, strlen(message), log_file);
 		if(message[strlen(message)-1] != '\n')
-			fwrite("\n", 1, 1, LogFile);
-		fflush(LogFile);
+			fwrite("\n", 1, 1, log_file);
+		fflush(log_file);
 	}
 	
 	if(log_directions & LOG_DIRECTION_CONSOLE){
@@ -138,9 +139,9 @@ void log_out(unsigned int category, const char *message){
 }
 
 void log_uninit(){
-	if(LogFile)
-		return;
-	fclose(LogFile);
+	if(log_directions & LOG_DIRECTION_FILE){
+		fclose(log_file);
+	}
 }
 
 void wait(int seconds){
@@ -436,7 +437,7 @@ static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
 		dateInfo = localtime(&date);
 		strftime(dateStr, 11, "%d.%m.%Y", dateInfo);
         char url[131]; //101
-        sprintf(&url[0], "http://faculty.ifmo.ru/gadgets/spbsuitmo-schedule-lessons/data/lessons-proxy-json.php?gr=%d&date=%s", group, dateStr);
+        sprintf(&url[0], "%s?gr=%d&date=%s", datasource_url, group, dateStr);
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data_buffer);
@@ -781,7 +782,7 @@ static char * get_answer(const char *command, char *answer) {
 }
 
 void show_usage(){
-	printf("\nUsage: main --icq.login <uin> --icq.pass <pass>\n");
+	printf("\nUsage: main --icq.login <uin> --icq.pass <pass> --datasource.url <url>\n");
 }
 
 void quit_handler(int sig){
@@ -822,16 +823,19 @@ int main(int argc, char *argv[]) {
     const int optIcgPass = 0x2;
     const int optLogFile = 0x4;
     const int optLogConsole = 0x8;
-    const int optLogLevel = 0x16;
+    const int optLogLevel = 0xF;
+	const int optDatasourceUrl = 0x10;
 	
-	int required_options = optIcgLogin | optIcgPass;
+	
+	int required_options = optIcgLogin | optIcgPass | optDatasourceUrl;
 
     static struct option long_options[] = {
         {"icq.login", required_argument, 0, optIcgLogin},
         {"icq.pass", required_argument, 0, optIcgPass},
         {"log.file", required_argument, 0, optLogFile},
         {"log.console", no_argument, 0, optLogConsole},
-        {"log.level", required_argument, 0, optLogLevel}
+        {"log.level", required_argument, 0, optLogLevel},
+		{"datasource.url", required_argument, 0, optDatasourceUrl}
     };
 
     int option_index = 0;
@@ -871,6 +875,10 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 break;
+			case optDatasourceUrl:
+				strcpy(datasource_url, optarg);
+				required_options &= ~optDatasourceUrl;
+				break;
         }
     }
 	if(required_options){
