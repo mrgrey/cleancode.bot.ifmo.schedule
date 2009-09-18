@@ -845,7 +845,7 @@ int main(int argc, char *argv[]) {
         {"log.console", no_argument, 0, optLogConsole},
         {"log.level", required_argument, 0, optLogLevel},
 		{"datasource.url", required_argument, 0, optDatasourceUrl},
-		{"datasource.url.params", required_argument, 0 optDatasourceUrlParams}
+		{"datasource.url.params", required_argument, 0, optDatasourceUrlParams}
     };
 
     int option_index = 0;
