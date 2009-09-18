@@ -44,6 +44,8 @@
 char uin[10];
 char password[30];
 char datasource_url[255];
+char datasource_url_params[255] = "";
+
 
 int requests_schedule_count = 0;
 
@@ -436,8 +438,14 @@ static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
 		}
 		dateInfo = localtime(&date);
 		strftime(dateStr, 11, "%d.%m.%Y", dateInfo);
-        char url[131]; //101
+        char url[512];
         sprintf(&url[0], "%s?gr=%d&date=%s", datasource_url, group, dateStr);
+		
+		if(datasource_url_params[0]){
+			strcat(url, "&");
+			strcat(url, datasource_url_params);
+		}
+		
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data_buffer);
@@ -825,6 +833,7 @@ int main(int argc, char *argv[]) {
     const int optLogConsole = 0x8;
     const int optLogLevel = 0xF;
 	const int optDatasourceUrl = 0x10;
+	const int optDatasourceUrlParams = 0x20;
 	
 	
 	int required_options = optIcgLogin | optIcgPass | optDatasourceUrl;
@@ -835,7 +844,8 @@ int main(int argc, char *argv[]) {
         {"log.file", required_argument, 0, optLogFile},
         {"log.console", no_argument, 0, optLogConsole},
         {"log.level", required_argument, 0, optLogLevel},
-		{"datasource.url", required_argument, 0, optDatasourceUrl}
+		{"datasource.url", required_argument, 0, optDatasourceUrl},
+		{"datasource.url.params", required_argument, 0 optDatasourceUrlParams}
     };
 
     int option_index = 0;
@@ -879,8 +889,12 @@ int main(int argc, char *argv[]) {
 				strcpy(datasource_url, optarg);
 				required_options &= ~optDatasourceUrl;
 				break;
+			case optDatasourceUrlParams:
+				strcpy(datasource_url_params, optarg);
+				break;
         }
     }
+	
 	if(required_options){
 		show_usage();
 		exit(0);
