@@ -87,6 +87,35 @@ int log2(int number){
 	return result;
 }
 
+
+int weekday(int day, int month, int year)
+{
+	int ix, tx, vx;
+	
+	switch (month) {
+		case 2 :
+		case 6 : vx = 0; break;
+		case 8 : vx = 4; break;
+		case 10 : vx = 8; break;
+		case 9 :
+		case 12 : vx = 12; break;
+		case 3 :
+		case 11 : vx = 16; break;
+		case 1 :
+		case 5 : vx = 20; break;
+		case 4 :
+		case 7 : vx = 24; break;
+	}
+	
+	if (year > 1900) // 1900 was not a leap year
+		year -= 1900;
+	ix = ((year - 21) % 28) + vx + (month > 2); // take care of February
+
+	tx = (ix + (ix / 4)) % 7 + day; // take care of leap year
+
+	return (tx % 7);
+}
+
 const char* log_categories_names[]={
 	"- general - ", //LOG_CATEGORY_GENERAL
 	"- func call - ", //LOG_CATEGORY_FUNC_CALL
@@ -419,7 +448,7 @@ static size_t write_data(char *buffer, size_t size, size_t nmemb, write_data_buf
     return size*nmemb;
 }
 
-static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
+static char * get_schedule_json(const char* group_id, char *buffer, time_t date = 0) {
 	log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() called");
 
         write_data_buffer data_buffer;
@@ -439,7 +468,7 @@ static char * get_schedule_json(int group, char *buffer, time_t date = 0) {
 		dateInfo = localtime(&date);
 		strftime(dateStr, 11, "%d.%m.%Y", dateInfo);
         char url[512];
-        sprintf(&url[0], "%s?gr=%d&date=%s", datasource_url, group, dateStr);
+        sprintf(&url[0], "%s?gr=%s&date=%s", datasource_url, group_id, dateStr);
 		
 		if(datasource_url_params[0]){
 			strcat(url, "&");
@@ -507,7 +536,7 @@ typedef struct{
 typedef struct {
     int week_number;
     char day[23];
-    int group;
+    char group_id[11];
     pair lessons[8];
 } data;
 
@@ -519,7 +548,7 @@ static int parse_json(const char *json_data, data *data) {
 	statusSymbol = startptr[9];
 	if(statusSymbol == 'w')
 	{
-            log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
+        log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
 		return -1;
 	}
 	
@@ -527,9 +556,12 @@ static int parse_json(const char *json_data, data *data) {
     startptr = strstr(json_data, "week_number");
     data->week_number = (int)strtol(startptr+13,NULL,10);
     startptr = strstr(startptr, "day");
-    strcpy(&(data->day[0]) ,&day_of_week[(int)strtol(startptr+6,NULL,10)][0]);
+    strcpy(&(data->day[0]), day_of_week[(int)strtol(startptr+6,NULL,10)]);
+	
     startptr = strstr(startptr, "group");
-    data->group = (int)strtol(startptr+8,NULL,10);
+	startptr += 8;
+	endptr = strstr(startptr, "\"");
+	memcpy(data->group_id, startptr, endptr - startptr);
 	
 	if(statusSymbol == 'n')
 	{
@@ -586,35 +618,84 @@ static char* schedule(const char *command, char *answer){
 		//DEBUG LOG OUTPUT
 		log_out(LOG_CATEGORY_FUNC_CALL, "schedule() called");
 		
+		/*
+			New version supports ONLY base syntax:
+			schedule <group_id, required> [date spec, optional]
+		*/
 		
 		requests_schedule_count++;
+
 		char *curcharptr = (char *)command;
-        int groupNumber = 0;
+		
+		const int max_group_id_length = 10;
+		char groupId[max_group_id_length + 1] = "";
+		
         time_t date;
         time(&date);
-        gboolean is_tomorrow = FALSE;
-        while(curcharptr != 0) {
-            if(strstr((const char *)curcharptr, " ") == 0)
-                break;
-            curcharptr = strstr((const char *)curcharptr, " ") + 1;
-			//TODO FIX! 
-            if (*curcharptr >= '0' && *curcharptr <= '9') {
-                groupNumber = atoi(curcharptr);
-                curcharptr += sizeof(groupNumber);
-            } else if((strstr((const char *)curcharptr, "tomorrow") || strstr((const char *)curcharptr, "на завтра"))&& !is_tomorrow) {
-                date += 24 * 3600;
-                curcharptr += (*curcharptr == 't') ? 8 : 9;
-                is_tomorrow = TRUE;
-            }
-        }
+		struct tm *dateinfo = localtime(&date);
 		
-		if(!groupNumber){
+        gboolean is_tomorrow = FALSE;
+		
+		curcharptr = strstr((const char *)curcharptr, " "); //need be checked for 0
+		if(curcharptr){
+			curcharptr++;
+		
+			int cmd_group_id_length = strlen(curcharptr) < max_group_id_length ? strlen(curcharptr) : max_group_id_length;
+			
+			char *endcharptr = strstr((const char *)curcharptr, " ");
+			
+			if(endcharptr && (curcharptr + cmd_group_id_length > endcharptr))
+				cmd_group_id_length = endcharptr - curcharptr;
+				
+			memcpy(groupId, curcharptr, cmd_group_id_length);
+			groupId[cmd_group_id_length] = 0;
+			
+			if(endcharptr)
+			{
+				curcharptr = endcharptr + 1;
+				if((strstr((const char *)curcharptr, "tomorrow") || strstr((const char *)curcharptr, "на завтра"))){
+					date += 24 * 3600;
+				}else if((strstr((const char *)curcharptr, "for ") || strstr((const char *)curcharptr, "на "))){
+					curcharptr = strstr((const char *)curcharptr, " ") + 1;
+					
+					int today_day_id = weekday(dateinfo->tm_mday, dateinfo->tm_mon + 1, dateinfo->tm_year + 1900);
+					int day_id = -1;
+					
+					if((strstr((const char *)curcharptr, "monday") || strstr((const char *)curcharptr, "понедельник"))){
+						day_id = 0;
+					}else if((strstr((const char *)curcharptr, "tuesday") || strstr((const char *)curcharptr, "вторник"))){
+						day_id = 1;
+					}else if((strstr((const char *)curcharptr, "wednesday") || strstr((const char *)curcharptr, "среду"))){
+						day_id = 2;
+					}else if((strstr((const char *)curcharptr, "thursday") || strstr((const char *)curcharptr, "четверг"))){
+						day_id = 3;
+					}else if((strstr((const char *)curcharptr, "friday") || strstr((const char *)curcharptr, "пятницу"))){	
+						day_id = 4;
+					}else if((strstr((const char *)curcharptr, "saturday") || strstr((const char *)curcharptr, "субботу"))){
+						day_id = 5;
+					}else if((strstr((const char *)curcharptr, "sunday") || strstr((const char *)curcharptr, "воскресенье"))){
+						day_id = 6;
+					};
+					
+					if(day_id != -1)
+					{
+						if(day_id<=today_day_id)
+							day_id += 7;
+						
+						date += (day_id - today_day_id) * 24 * 3600;
+						
+					}
+				}
+			}
+		}
+		
+		if(!groupId[0]){
 			strcpy(answer, "Пожалуйста, укажите номер группы.");
 		}else{
 		
 
 	        char buffer[5120], out[5120];
-	        get_schedule_json(groupNumber, &buffer[0], date);
+	        get_schedule_json(groupId, &buffer[0], date);
 	        decode_utf_literals(&buffer[0], &out[0]);
 	        data data;
 	        int lessons = parse_json(out, &data);
@@ -622,10 +703,10 @@ static char* schedule(const char *command, char *answer){
 	        if (lessons == -1) {
 	            strcpy(answer, "Недопустимый номер группы");
 	        } else if (lessons == 0) {
-	            sprintf(answer, "%s, %d неделя<br>Группа: %d<br><br>", data.day, data.week_number, data.group);
+	            sprintf(answer, "%s, %d неделя<br>Группа: %s<br><br>", data.day, data.week_number, data.group_id);
 	            strcat(answer, "<br>Нет занятий");
 	        } else {
-	            sprintf(answer, "%s, %d неделя<br>Группа: %d<br><br>", data.day, data.week_number, data.group);
+	            sprintf(answer, "%s, %d неделя<br>Группа: %s<br><br>", data.day, data.week_number, data.group_id);
 	            sprintf(answer, "%s_______________________________<br>", answer);
 	            for (int i = 0; i < lessons - 1; i++) {
 	                if (i) {
