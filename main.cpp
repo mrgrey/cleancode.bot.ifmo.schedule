@@ -493,28 +493,42 @@ static char * decode_utf_literals(const char *json_data, char *buffer) {
 	
     char *startptr = buffer;
     char tdata;
-    guint16 utf_symbol;
+    int utf_symbol;
     char *curptr = (char *)json_data;
+	char t_converted_data[4];
     while(*curptr != '\0') {
         if(*curptr == '\\' && *(curptr+1) == 'u') {
             tdata = *(curptr+6);
             *(curptr+6) = '\\';
-            utf_symbol = (guint16)strtol(curptr+2,NULL,16);
+            utf_symbol = (int)strtol(curptr+2,NULL,16);
 
             //Convert character from utf
             if (utf_symbol <= 0x7F) {
                 *buffer = (unsigned char) utf_symbol;
+				buffer++;
             } else if (utf_symbol <= 0x7FF) {
-                guint16 t_converted_data = 0x6 << 13;
-                t_converted_data |= (utf_symbol & (0x1F << 6)) << 2;
-                t_converted_data |= 0x2 << 6;
-                t_converted_data |= utf_symbol & 0x3F;
-                *((guint16 *) buffer) = ((t_converted_data & 0xFF00) >> 8) | ((t_converted_data & 0xFF) << 8);
+				t_converted_data[1] = 0x80 | (utf_symbol & 0x3F);
+				t_converted_data[0] = 0xC0 | ((utf_symbol >> 6) & 0x1F);
+				memcpy(buffer, t_converted_data, 2);
+				buffer += 2;
+			} else if (utf_symbol <= 0xFFFF) {
+				t_converted_data[2] = 0x80 | (utf_symbol & 0x3F);
+				t_converted_data[1] = 0x80 | ((utf_symbol >> 6) & 0x3F);
+				t_converted_data[0] = 0xE0 | ((utf_symbol >> 12) & 0xF);
+				memcpy(buffer, t_converted_data, 3);
+				buffer += 3;
+			} else if (utf_symbol <= 0x10FFFF ) {
+				t_converted_data[3] = 0x80 | (utf_symbol & 0x3F);
+				t_converted_data[2] = 0x80 | ((utf_symbol >> 6) & 0x3F);
+				t_converted_data[1] = 0x80 | ((utf_symbol >> 12) & 0x3F);
+				t_converted_data[0] = 0xF0 | ((utf_symbol >> 18) & 0x7);
+				memcpy(buffer, t_converted_data, 4);
+				buffer += 4;
             } else {
                 *buffer = '?';
+				buffer++;
             }
 
-            buffer += 2;
             *(curptr+6) = tdata;
             curptr += 6;
         } else {
@@ -610,7 +624,7 @@ static char* date_time(const char *command, char *answer){
 }
 
 static char* version(const char *command, char *answer){
-	strcpy(answer, "Версия: 0.2.7, билд от 16.09.2009");
+	strcpy(answer, "Версия: 0.2.8, билд от 21.09.2009");
 	return answer;
 }
 
