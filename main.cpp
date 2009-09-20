@@ -624,7 +624,7 @@ static char* date_time(const char *command, char *answer){
 }
 
 static char* version(const char *command, char *answer){
-	strcpy(answer, "Версия: 0.2.8, билд от 21.09.2009");
+	strcpy(answer, "Версия: 0.2.9, билд от 21.09.2009");
 	return answer;
 }
 
@@ -745,14 +745,18 @@ static char* help(const char *command, char *answer){
 					"-----------------------------------------------------------<br>"
 					"ENG:<br>"
 					"schedule 1234 - выводит расписание для группы 1234<br>"
+					"s 1234 - аналогично<br>"
 					"schedule 1234 tomorrow - выводит расписание на завтра для группы 1234<br>"
+					"schedule 1234 for wednesday - выводит расписание на ближайшую среду для группы 1234<br>"
 					"link 1234 - выводит ссылку на печатную форму расписания для 1234<br>"
 					"version - выводит информацию о версии<br>"
 					"help - выводит это сообщение<br>"
 					"------------------------------------------------------------<br>"
 					"РУС:<br>"
 					"расписание 1234 - выводит расписание для группы 1234<br>"
+					"р 1234 - аналогично<br>"
 					"расписание 1234 на завтра - выводит расписание на завтра для группы 1234<br>"
+					"расписание 1234 на среду - выводит расписание на ближайшую среду для группы 1234<br>"
 					"ссылка 1234 - выводит ссылку на печатную форму расписания для группы 1234<br>"
 					"версия - выводит информацию о версии<br>"
 					"помощь - выводит это сообщение<br>"
@@ -831,6 +835,8 @@ static void init_commands_table()
 	
 	COMMANDS_TABLE_ENTRY("schedule", schedule);
 	COMMANDS_TABLE_ENTRY("расписание", schedule);
+	COMMANDS_TABLE_ENTRY("s", schedule);
+	COMMANDS_TABLE_ENTRY("р", schedule);
 	
 	COMMANDS_TABLE_ENTRY("help", help);
 	COMMANDS_TABLE_ENTRY("помощь", help);
