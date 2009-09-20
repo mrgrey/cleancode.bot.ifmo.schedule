@@ -570,7 +570,7 @@ static int parse_json(const char *json_data, data *data) {
     startptr = strstr(json_data, "week_number");
     data->week_number = (int)strtol(startptr+13,NULL,10);
     startptr = strstr(startptr, "day");
-    strcpy(data->day), day_of_week[(int)strtol(startptr+6,NULL,10)]);
+    strcpy(data->day, day_of_week[(int)strtol(startptr+6,NULL,10)]);
 	
     startptr = strstr(startptr, "group");
 	startptr += 8;
