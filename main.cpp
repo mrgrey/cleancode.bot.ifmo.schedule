@@ -675,19 +675,19 @@ static char* schedule(const char *command, char *answer){
 					int today_day_id = weekday(dateinfo->tm_mday, dateinfo->tm_mon + 1, dateinfo->tm_year + 1900);
 					int day_id = -1;
 					
-					if((strstr((const char *)curcharptr, "monday") || strstr((const char *)curcharptr, "понедельник"))){
+					if((strcmp((const char *)curcharptr, "monday") == 0 || strcmp((const char *)curcharptr, "понедельник") == 0)){
 						day_id = 0;
-					}else if((strstr((const char *)curcharptr, "tuesday") || strstr((const char *)curcharptr, "вторник"))){
+					}else if((strcmp((const char *)curcharptr, "tuesday") == 0 || strcmp((const char *)curcharptr, "вторник") == 0)){
 						day_id = 1;
-					}else if((strstr((const char *)curcharptr, "wednesday") || strstr((const char *)curcharptr, "среду"))){
+					}else if((strcmp((const char *)curcharptr, "wednesday") == 0 || strcmp((const char *)curcharptr, "среду") == 0)){
 						day_id = 2;
-					}else if((strstr((const char *)curcharptr, "thursday") || strstr((const char *)curcharptr, "четверг"))){
+					}else if((strcmp((const char *)curcharptr, "thursday") == 0 || strcmp((const char *)curcharptr, "четверг") == 0)){
 						day_id = 3;
-					}else if((strstr((const char *)curcharptr, "friday") || strstr((const char *)curcharptr, "пятницу"))){	
+					}else if((strcmp((const char *)curcharptr, "friday") == 0 || strcmp((const char *)curcharptr, "пятницу") == 0)){
 						day_id = 4;
-					}else if((strstr((const char *)curcharptr, "saturday") || strstr((const char *)curcharptr, "субботу"))){
+					}else if((strcmp((const char *)curcharptr, "saturday") == 0 || strcmp((const char *)curcharptr, "субботу") == 0)){
 						day_id = 5;
-					}else if((strstr((const char *)curcharptr, "sunday") || strstr((const char *)curcharptr, "воскресенье"))){
+					}else if((strcmp((const char *)curcharptr, "sunday") == 0 || strcmp((const char *)curcharptr, "воскресенье") == 0)){
 						day_id = 6;
 					};
 					
