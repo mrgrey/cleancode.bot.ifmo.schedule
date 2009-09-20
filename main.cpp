@@ -500,7 +500,7 @@ static char * decode_utf_literals(const char *json_data, char *buffer) {
         if(*curptr == '\\' && *(curptr+1) == 'u') {
             tdata = *(curptr+6);
             *(curptr+6) = '\\';
-            utf_symbol = (int)strtol(curptr+2,NULL,16);
+            utf_symbol = (guint32)strtol(curptr+2, NULL, 16);
 
             //Convert character from utf
             if (utf_symbol <= 0x7F) {
