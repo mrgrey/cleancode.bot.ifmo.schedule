@@ -541,8 +541,8 @@ static char * decode_utf_literals(const char *json_data, char *buffer) {
 }
 
 typedef struct{
-    char time[30];
-    char place[30];
+    char time[60];
+    char place[60];
     char subject[5120];
     char person_name[100];
 } pair;
@@ -570,7 +570,7 @@ static int parse_json(const char *json_data, data *data) {
     startptr = strstr(json_data, "week_number");
     data->week_number = (int)strtol(startptr+13,NULL,10);
     startptr = strstr(startptr, "day");
-    strcpy(&(data->day[0]), day_of_week[(int)strtol(startptr+6,NULL,10)]);
+    strcpy(data->day), day_of_week[(int)strtol(startptr+6,NULL,10)]);
 	
     startptr = strstr(startptr, "group");
 	startptr += 8;
