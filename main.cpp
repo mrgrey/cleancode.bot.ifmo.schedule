@@ -502,7 +502,7 @@ static char * get_schedule_json(const char* group_id, char *buffer, time_t date 
 	curl_easy_cleanup(curl);
 	log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() exited");
 	
-    return startptr;
+    return buffer;
 }
 
 static char * decode_utf_literals(const char *json_data, char *buffer) {
@@ -644,7 +644,7 @@ static char* date_time(const char *command, char *answer){
 
 static char* version(const char *command, char *answer){
     char* answer_start_ptr = answer;
-	strcpy(answer, "Версия: 0.2.9, билд от 21.09.2009");
+	strcpy(answer, "Версия: 0.3, билд от 23.09.2009");
 	return answer_start_ptr;
 }
 
