@@ -592,7 +592,7 @@ static int parse_json(const char *json_data, data *data) {
 	
 	if(statusSymbol == 'n')
 	{
-            log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
+		log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
 		return 0;
 	}
 
@@ -600,6 +600,7 @@ static int parse_json(const char *json_data, data *data) {
         //time
         startptr = strstr(startptr, "time");
         if( startptr == NULL ) {
+			log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
             return i+1;
         }
         endptr = strstr(startptr, "place");
