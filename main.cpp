@@ -450,7 +450,7 @@ static size_t write_data(char *buffer, size_t size, size_t nmemb, write_data_buf
 
 static char * get_schedule_json(const char* group_id, char *buffer, time_t date = 0) {
 	log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() called");
-
+    char* startptr = buffer;
         write_data_buffer data_buffer;
         data_buffer.buffer = buffer;
         data_buffer.offset = 0;
@@ -498,7 +498,7 @@ static char * get_schedule_json(const char* group_id, char *buffer, time_t date 
 	curl_easy_cleanup(curl);
 	log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() exited");
 	
-    return buffer;
+    return startptr;
 }
 
 static char * decode_utf_literals(const char *json_data, char *buffer) {
@@ -629,22 +629,26 @@ static int parse_json(const char *json_data, data *data) {
 typedef char (*COMMAND_HANDLER)(const char* command, char* answer);
 
 static char* date_time(const char *command, char *answer){
+    char* answer_start_ptr = answer;
 	time_t rawtime;
 	time(&rawtime);
 	struct tm *timeinfo = localtime(&rawtime);
 	sprintf(answer, "Date and time: %s", asctime(timeinfo));
-	return answer;
+	return answer_start_ptr;
 }
 
 static char* version(const char *command, char *answer){
+    char* answer_start_ptr = answer;
 	strcpy(answer, "Версия: 0.2.9, билд от 21.09.2009");
-	return answer;
+	return answer_start_ptr;
 }
 
 static char* schedule(const char *command, char *answer){
 		//DEBUG LOG OUTPUT
 		log_out(LOG_CATEGORY_FUNC_CALL, "schedule() called");
-		
+
+    char* answer_start_ptr = answer;
+
 		/*
 			New version supports ONLY base syntax:
 			schedule <group_id, required> [date spec, optional]
@@ -767,12 +771,12 @@ static char* schedule(const char *command, char *answer){
 		//DEBUG LOG OUTPUT
 		log_out(LOG_CATEGORY_FUNC_CALL, "schedule() exited");
 		
-		return answer;
+		return answer_start_ptr;
 }
 
 
 static char* help(const char *command, char *answer){
-
+    char* answer_start_ptr = answer;
 	strcpy(answer,  "Список доступных комманд:<br>"
 					"-----------------------------------------------------------<br>"
 					"ENG:<br>"
@@ -797,15 +801,17 @@ static char* help(const char *command, char *answer){
 					" denis.bykov@cleancode.ru<br>"
 					" chuyko.yury@cleancode.ru"
 					);
-	return answer;
+	return answer_start_ptr;
 }
 
 static char* stat(const char *command, char *answer){
+    char* answer_start_ptr = answer;
 	sprintf(answer, "С запуска %d запросов расписания", requests_schedule_count);
-	return answer;
+	return answer_start_ptr;
 }
 
-static char* show_log_tail(const char *command, char *answer){	
+static char* show_log_tail(const char *command, char *answer){
+    char* answer_start_ptr = answer;
 	if(!log_file_name[0]){
 		strcpy(answer, "Файловое логирование отключено");
 	}else{
@@ -832,10 +838,11 @@ static char* show_log_tail(const char *command, char *answer){
 
 		pclose(cmd_out_stream);
 	}
-	return answer;
+	return answer_start_ptr;
 }
 
 static char* show_schedule_link(const char *command, char *answer){
+    char* answer_start_ptr = answer;
     int groupNumber = 0;
     char* wsptr = strstr(command, " ");
     if(wsptr != 0) {
@@ -845,7 +852,7 @@ static char* show_schedule_link(const char *command, char *answer){
     if(groupNumber == 0) {
         sprintf(answer, "Неверно задан номер группы!");
     }
-    return answer;
+    return answer_start_ptr;
 }
 
 GHashTable *commands_table = NULL;
@@ -916,6 +923,8 @@ static char * get_answer(const char *command, char *answer) {
 	//DEBUG LOG OUTPUT
 	log_out(LOG_CATEGORY_FUNC_CALL, "get_answer() called");
 
+        char* answer_start_ptr = answer;
+
 	while(*command == ' ')
 		command++;
 
@@ -949,7 +958,7 @@ static char * get_answer(const char *command, char *answer) {
 	
 	log_out(LOG_CATEGORY_FUNC_CALL, "get_answer() exited");
 	
-    return answer;
+    return answer_start_ptr;
 }
 
 void show_usage(){
