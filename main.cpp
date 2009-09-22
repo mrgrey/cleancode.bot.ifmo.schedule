@@ -62,6 +62,8 @@ static PurpleAccount *globalAccount;
 #define LOG_CATEGORY_GENERAL 0x1
 #define LOG_CATEGORY_FUNC_CALL 0x2
 #define LOG_CATEGORY_INCOMING 0x4
+#define LOG_CATEGORY_CMDCALL 0x8
+#define LOG_CATEGORY_ERROR 0xF
 
 #define LOG_CATEGORY_ALL 0xFFFFFFFF
 
@@ -119,7 +121,9 @@ int weekday(int day, int month, int year)
 const char* log_categories_names[]={
 	"- general - ", //LOG_CATEGORY_GENERAL
 	"- func call - ", //LOG_CATEGORY_FUNC_CALL
-	"- incoming - " //LOG_CATEGORY_INCOMING 
+	"- incoming - ", //LOG_CATEGORY_INCOMING
+        "- cmdcall - ", //LOG_CATEGORY_INCOMING
+        "- error - " //LOG_CATEGORY_ERROR
 };
 
 bool log_init(const char* new_log_file_name){
@@ -738,7 +742,13 @@ static char* schedule(const char *command, char *answer){
 		if(!groupId[0]){
 			strcpy(answer, "Пожалуйста, укажите номер группы.");
 		}else{
-		
+                    char date_str[11];
+                    struct tm *date_info;
+                    date_info = localtime(&date);
+                    strftime(date_str, 11, "%d.%m.%Y", date_info);
+                    char log_str[100];
+                    sprintf(&log_str[0], "schedule - group: %s | date: %s", groupId, date_str);
+                    log_out(LOG_CATEGORY_CMDCALL, log_str);
 
 	        char buffer[5120], out[5120];
 	        if(!get_schedule_json(groupId, &buffer[0], date)){
