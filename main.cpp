@@ -481,8 +481,13 @@ static char * get_schedule_json(const char* group_id, char *buffer, time_t date 
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data_buffer);
+	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
 	
-	if(res = curl_easy_perform(curl)){
+	res = curl_easy_perform(curl);
+	long response_code;
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+	
+	if(res){
 		//something goes wrong
 		buffer = NULL;
 	} else {
@@ -732,27 +737,31 @@ static char* schedule(const char *command, char *answer){
 		
 
 	        char buffer[5120], out[5120];
-	        get_schedule_json(groupId, &buffer[0], date);
-	        decode_utf_literals(&buffer[0], &out[0]);
-	        data data;
-	        int lessons = parse_json(out, &data);
+	        if(!get_schedule_json(groupId, &buffer[0], date)){
+				strcpy(answer, "Ошибка получения данных. Пожалуйста, повторите позже.");
+			} else {
+			
+				decode_utf_literals(&buffer[0], &out[0]);
+				data data;
+				int lessons = parse_json(out, &data);
 
-	        if (lessons == -1) {
-	            strcpy(answer, "Недопустимый номер группы");
-	        } else if (lessons == 0) {
-	            sprintf(answer, "%s, %d неделя<br>Группа: %s<br><br>", data.day, data.week_number, data.group_id);
-	            strcat(answer, "<br>Нет занятий");
-	        } else {
-	            sprintf(answer, "%s, %d неделя<br>Группа: %s<br><br>", data.day, data.week_number, data.group_id);
-	            sprintf(answer, "%s_______________________________<br>", answer);
-	            for (int i = 0; i < lessons - 1; i++) {
-	                if (i) {
-	                    sprintf(answer, "%s_______________________________<br>", answer);
-	                }
-	                sprintf(answer, "%s%s %s - %s<br>%s<br>", answer, data.lessons[i].time, data.lessons[i].place, data.lessons[i].person_name, data.lessons[i].subject);
-	                //sprintf(answer, "%s_______________________________<br>", answer);
-	            }
-	        }
+				if (lessons == -1) {
+					strcpy(answer, "Недопустимый номер группы");
+				} else if (lessons == 0) {
+					sprintf(answer, "%s, %d неделя<br>Группа: %s<br><br>", data.day, data.week_number, data.group_id);
+					strcat(answer, "<br>Нет занятий");
+				} else {
+					sprintf(answer, "%s, %d неделя<br>Группа: %s<br><br>", data.day, data.week_number, data.group_id);
+					sprintf(answer, "%s_______________________________<br>", answer);
+					for (int i = 0; i < lessons - 1; i++) {
+						if (i) {
+							sprintf(answer, "%s_______________________________<br>", answer);
+						}
+						sprintf(answer, "%s%s %s - %s<br>%s<br>", answer, data.lessons[i].time, data.lessons[i].place, data.lessons[i].person_name, data.lessons[i].subject);
+						//sprintf(answer, "%s_______________________________<br>", answer);
+					}
+				}
+			}
 		}
 		
 		//DEBUG LOG OUTPUT
