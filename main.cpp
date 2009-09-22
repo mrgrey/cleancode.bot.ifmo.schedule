@@ -659,7 +659,7 @@ static char* schedule(const char *command, char *answer){
 		
         time_t date;
         time(&date);
-		struct tm *dateinfo = localtime(&date);
+        struct tm *dateinfo = localtime(&date);
 		
         gboolean is_tomorrow = FALSE;
 		
@@ -885,25 +885,55 @@ static void init_commands_table()
 	COMMANDS_TABLE_ENTRY("link", show_schedule_link);
 }
 
+static char * short_group_name_parse(const char *command, char *prepared_command) {
+    //command is already trimmed
+    char *start_prepared_command_ptr = prepared_command;
+    char* last_part = strstr(command, " ");
+    int group_num = atoi(command);
+    if((strlen(command) == 4 || strlen(command) == 3) && group_num != 0) { //IFMO or PGUPS detected
+        if(last_part) {
+            sprintf(prepared_command, "schedule %d%s", group_num, last_part);
+        } else {
+            sprintf(prepared_command, "schedule %d", group_num);
+        }
+        return start_prepared_command_ptr;
+    } else if(*command == 'i' && *(command+1) == 'd') { //SZIP detected
+        group_num = atoi(command+2);
+        if(group_num != 0) {
+            if(last_part) {
+                sprintf(prepared_command, "schedule id%d%s", group_num, last_part);
+            } else {
+                sprintf(prepared_command, "schedule id%d", group_num);
+            }
+            return start_prepared_command_ptr;
+        }
+    }
+    strcpy(prepared_command, command);
+    return start_prepared_command_ptr;
+}
+
 static char * get_answer(const char *command, char *answer) {
 	//DEBUG LOG OUTPUT
 	log_out(LOG_CATEGORY_FUNC_CALL, "get_answer() called");
 
 	while(*command == ' ')
 		command++;
+
+        char buffer[5120];
+        short_group_name_parse(command, &buffer[0]);
 		
-	char* cmd_end = strstr(command, " ");
+	char* cmd_end = strstr(&buffer[0], " ");
 	
 	//security threat, possible buffer overflow
 	char cmd[30];
 	int cmdLength;
 	
-	cmdLength = (cmd_end) ? (cmd_end - command) : strlen(command);
+	cmdLength = (cmd_end) ? (cmd_end - &buffer[0]) : strlen(&buffer[0]);
 	cmdLength = min(cmdLength, 29);
 	
 	
 	
-	memcpy(cmd, command, cmdLength);
+	memcpy(cmd, &buffer[0], cmdLength);
 	
 	cmd[cmdLength] = 0;
 	const char* normalized_command = purple_normalize_nocase(globalAccount, cmd);
@@ -914,7 +944,7 @@ static char * get_answer(const char *command, char *answer) {
 						"Попробуйте ввести help или помощь, чтобы просмотреть краткую информацию по доступным командам."
 		);
 	} else {
-		((COMMAND_HANDLER)func)(command, answer);
+		((COMMAND_HANDLER)func)(&buffer[0], answer);
 	}
 	
 	log_out(LOG_CATEGORY_FUNC_CALL, "get_answer() exited");
