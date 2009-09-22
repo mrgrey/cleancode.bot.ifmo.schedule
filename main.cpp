@@ -664,41 +664,56 @@ static char* schedule(const char *command, char *answer){
 			memcpy(groupId, curcharptr, cmd_group_id_length);
 			groupId[cmd_group_id_length] = 0;
 			
-			if(endcharptr)
-			{
-				curcharptr = endcharptr + 1;
-				if((strstr((const char *)curcharptr, "tomorrow") || strstr((const char *)curcharptr, "на завтра"))){
-					date += 24 * 3600;
-				}else if((strstr((const char *)curcharptr, "for ") || strstr((const char *)curcharptr, "на "))){
-					curcharptr = strstr((const char *)curcharptr, " ") + 1;
-					
-					int today_day_id = weekday(dateinfo->tm_mday, dateinfo->tm_mon + 1, dateinfo->tm_year + 1900);
-					int day_id = -1;
-					
-					if((strcmp((const char *)curcharptr, "monday") == 0 || strcmp((const char *)curcharptr, "понедельник") == 0)){
-						day_id = 0;
-					}else if((strcmp((const char *)curcharptr, "tuesday") == 0 || strcmp((const char *)curcharptr, "вторник") == 0)){
-						day_id = 1;
-					}else if((strcmp((const char *)curcharptr, "wednesday") == 0 || strcmp((const char *)curcharptr, "среду") == 0)){
-						day_id = 2;
-					}else if((strcmp((const char *)curcharptr, "thursday") == 0 || strcmp((const char *)curcharptr, "четверг") == 0)){
-						day_id = 3;
-					}else if((strcmp((const char *)curcharptr, "friday") == 0 || strcmp((const char *)curcharptr, "пятницу") == 0)){
-						day_id = 4;
-					}else if((strcmp((const char *)curcharptr, "saturday") == 0 || strcmp((const char *)curcharptr, "субботу") == 0)){
-						day_id = 5;
-					}else if((strcmp((const char *)curcharptr, "sunday") == 0 || strcmp((const char *)curcharptr, "воскресенье") == 0)){
-						day_id = 6;
-					};
-					
-					if(day_id != -1)
-					{
-						if(day_id<=today_day_id)
-							day_id += 7;
+			if(endcharptr){
+			
+				//curcharptr = endcharptr + 1;
+				
+				while(*curcharptr == ' '){
+					curcharptr++;
+				}
+				
+				if(*curcharptr){
+					if((strstr((const char *)curcharptr, "tomorrow") || strstr((const char *)curcharptr, "на завтра"))){
+						date += 24 * 3600;
+					}else if((strstr((const char *)curcharptr, "for ") || strstr((const char *)curcharptr, "на "))){
+						curcharptr = strstr((const char *)curcharptr, " ") + 1;
 						
-						date += (day_id - today_day_id) * 24 * 3600;
+						int today_day_id = weekday(dateinfo->tm_mday, dateinfo->tm_mon + 1, dateinfo->tm_year + 1900);
+						int day_id = -1;
 						
-					}
+						if((strcmp((const char *)curcharptr, "monday") == 0 || strcmp((const char *)curcharptr, "понедельник") == 0)){
+							day_id = 0;
+						}else if((strcmp((const char *)curcharptr, "tuesday") == 0 || strcmp((const char *)curcharptr, "вторник") == 0)){
+							day_id = 1;
+						}else if((strcmp((const char *)curcharptr, "wednesday") == 0 || strcmp((const char *)curcharptr, "среду") == 0)){
+							day_id = 2;
+						}else if((strcmp((const char *)curcharptr, "thursday") == 0 || strcmp((const char *)curcharptr, "четверг") == 0)){
+							day_id = 3;
+						}else if((strcmp((const char *)curcharptr, "friday") == 0 || strcmp((const char *)curcharptr, "пятницу") == 0)){
+							day_id = 4;
+						}else if((strcmp((const char *)curcharptr, "saturday") == 0 || strcmp((const char *)curcharptr, "субботу") == 0)){
+							day_id = 5;
+						}else if((strcmp((const char *)curcharptr, "sunday") == 0 || strcmp((const char *)curcharptr, "воскресенье") == 0)){
+							day_id = 6;
+						};
+						
+						if(day_id != -1)
+						{
+							if(day_id<=today_day_id)
+								day_id += 7;
+							
+							date += (day_id - today_day_id) * 24 * 3600;
+							
+						} else {
+							strcpy(answer, "Неизвестный день недели.");
+							log_out(LOG_CATEGORY_FUNC_CALL, "schedule() exited");
+							return answer;
+						}
+					} else {
+						strcpy(answer, "Некорректный спецификатор даты.");
+						log_out(LOG_CATEGORY_FUNC_CALL, "schedule() exited");
+						return answer;
+					}					
 				}
 			}
 		}
@@ -841,7 +856,7 @@ static void init_commands_table()
 	COMMANDS_TABLE_ENTRY("help", help);
 	COMMANDS_TABLE_ENTRY("помощь", help);
 	COMMANDS_TABLE_ENTRY("!help", help);
-        COMMANDS_TABLE_ENTRY("?", help);
+	COMMANDS_TABLE_ENTRY("?", help);
 	
 	COMMANDS_TABLE_ENTRY("stat", stat);
 	COMMANDS_TABLE_ENTRY("стат", stat);
@@ -849,7 +864,7 @@ static void init_commands_table()
 	COMMANDS_TABLE_ENTRY("лог", show_log_tail);
 	COMMANDS_TABLE_ENTRY("log", show_log_tail);
 
-        COMMANDS_TABLE_ENTRY("ссылка", show_schedule_link);
+	COMMANDS_TABLE_ENTRY("ссылка", show_schedule_link);
 	COMMANDS_TABLE_ENTRY("link", show_schedule_link);
 }
 
