@@ -460,29 +460,37 @@ static char * get_schedule_json(const char* group_id, char *buffer, time_t date 
 	char dateStr[11];
 	struct tm *dateInfo;
 
-    curl = curl_easy_init();
-    if (curl) {
-		if(!date){
-			date = time(NULL);
-		}
-		dateInfo = localtime(&date);
-		strftime(dateStr, 11, "%d.%m.%Y", dateInfo);
-        char url[512];
-        sprintf(&url[0], "%s?gr=%s&date=%s", datasource_url, group_id, dateStr);
-		
-		if(datasource_url_params[0]){
-			strcat(url, "&");
-			strcat(url, datasource_url_params);
-		}
-		
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data_buffer);
-        res = curl_easy_perform(curl);
-        curl_easy_cleanup(curl);
-    }
+    if (!(curl = curl_easy_init())) {
+		log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() exited");
+		return NULL;
+	}
 
-    buffer = (char *)data_buffer.buffer;
+	if(!date){
+		date = time(NULL);
+	}
+	dateInfo = localtime(&date);
+	strftime(dateStr, 11, "%d.%m.%Y", dateInfo);
+	char url[512];
+	sprintf(&url[0], "%s?gr=%s&date=%s", datasource_url, group_id, dateStr);
+	
+	if(datasource_url_params[0]){
+		strcat(url, "&");
+		strcat(url, datasource_url_params);
+	}
+	
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data_buffer);
+	
+	if(res = curl_easy_perform(curl)){
+		//something goes wrong
+		buffer = NULL;
+	} else {
+		//everything is ok
+		buffer = (char *)data_buffer.buffer;
+	}
+	
+	curl_easy_cleanup(curl);
 	log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() exited");
 	
     return buffer;
