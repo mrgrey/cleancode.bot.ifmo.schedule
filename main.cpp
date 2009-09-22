@@ -460,29 +460,42 @@ static char * get_schedule_json(const char* group_id, char *buffer, time_t date 
 	char dateStr[11];
 	struct tm *dateInfo;
 
-    curl = curl_easy_init();
-    if (curl) {
-		if(!date){
-			date = time(NULL);
-		}
-		dateInfo = localtime(&date);
-		strftime(dateStr, 11, "%d.%m.%Y", dateInfo);
-        char url[512];
-        sprintf(&url[0], "%s?gr=%s&date=%s", datasource_url, group_id, dateStr);
-		
-		if(datasource_url_params[0]){
-			strcat(url, "&");
-			strcat(url, datasource_url_params);
-		}
-		
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data_buffer);
-        res = curl_easy_perform(curl);
-        curl_easy_cleanup(curl);
-    }
+    if (!(curl = curl_easy_init())) {
+		log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() exited");
+		return NULL;
+	}
 
-    buffer = (char *)data_buffer.buffer;
+	if(!date){
+		date = time(NULL);
+	}
+	dateInfo = localtime(&date);
+	strftime(dateStr, 11, "%d.%m.%Y", dateInfo);
+	char url[512];
+	sprintf(&url[0], "%s?gr=%s&date=%s", datasource_url, group_id, dateStr);
+	
+	if(datasource_url_params[0]){
+		strcat(url, "&");
+		strcat(url, datasource_url_params);
+	}
+	
+	curl_easy_setopt(curl, CURLOPT_URL, url);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data_buffer);
+	curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1);
+	
+	res = curl_easy_perform(curl);
+	long response_code;
+	curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+	
+	if(res){
+		//something goes wrong
+		buffer = NULL;
+	} else {
+		//everything is ok
+		buffer = (char *)data_buffer.buffer;
+	}
+	
+	curl_easy_cleanup(curl);
 	log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() exited");
 	
     return startptr;
@@ -668,43 +681,58 @@ static char* schedule(const char *command, char *answer){
 			memcpy(groupId, curcharptr, cmd_group_id_length);
 			groupId[cmd_group_id_length] = 0;
 			
-			if(endcharptr)
-			{
-				curcharptr = endcharptr + 1;
-				if((strstr((const char *)curcharptr, "tomorrow") || strstr((const char *)curcharptr, "на завтра"))){
-					date += 24 * 3600;
-				}else if((strstr((const char *)curcharptr, "for ") || strstr((const char *)curcharptr, "на "))){
-					curcharptr = strstr((const char *)curcharptr, " ") + 1;
-					
-					int today_day_id = weekday(dateinfo->tm_mday, dateinfo->tm_mon + 1, dateinfo->tm_year + 1900);
-					int day_id = -1;
-					
-					if((strcmp((const char *)curcharptr, "monday") == 0 || strcmp((const char *)curcharptr, "понедельник") == 0)){
-						day_id = 0;
-					}else if((strcmp((const char *)curcharptr, "tuesday") == 0 || strcmp((const char *)curcharptr, "вторник") == 0)){
-						day_id = 1;
-					}else if((strcmp((const char *)curcharptr, "wednesday") == 0 || strcmp((const char *)curcharptr, "среду") == 0)){
-						day_id = 2;
-					}else if((strcmp((const char *)curcharptr, "thursday") == 0 || strcmp((const char *)curcharptr, "четверг") == 0)){
-						day_id = 3;
-					}else if((strcmp((const char *)curcharptr, "friday") == 0 || strcmp((const char *)curcharptr, "пятницу") == 0)){
-						day_id = 4;
-					}else if((strcmp((const char *)curcharptr, "saturday") == 0 || strcmp((const char *)curcharptr, "субботу") == 0)){
-						day_id = 5;
-					}else if((strcmp((const char *)curcharptr, "sunday") == 0 || strcmp((const char *)curcharptr, "воскресенье") == 0)){
-						day_id = 6;
-					};
-					
-					if(day_id != -1)
-					{
-						if(day_id<=today_day_id)
-							day_id += 7;
+			if(endcharptr){
+			
+				//curcharptr = endcharptr + 1;
+				
+				while(*curcharptr == ' '){
+					curcharptr++;
+				}
+				
+				if(*curcharptr){
+					if((strstr((const char *)curcharptr, "tomorrow") || strstr((const char *)curcharptr, "на завтра"))){
+						date += 24 * 3600;
+					}else if((strstr((const char *)curcharptr, "for ") || strstr((const char *)curcharptr, "на "))){
+						curcharptr = strstr((const char *)curcharptr, " ") + 1;
 						
-						date += (day_id - today_day_id) * 24 * 3600;
+						int today_day_id = weekday(dateinfo->tm_mday, dateinfo->tm_mon + 1, dateinfo->tm_year + 1900);
+						int day_id = -1;
 						
-                                        }
-                                }
-                        }
+						if((strcmp((const char *)curcharptr, "monday") == 0 || strcmp((const char *)curcharptr, "понедельник") == 0)){
+							day_id = 0;
+						}else if((strcmp((const char *)curcharptr, "tuesday") == 0 || strcmp((const char *)curcharptr, "вторник") == 0)){
+							day_id = 1;
+						}else if((strcmp((const char *)curcharptr, "wednesday") == 0 || strcmp((const char *)curcharptr, "среду") == 0)){
+							day_id = 2;
+						}else if((strcmp((const char *)curcharptr, "thursday") == 0 || strcmp((const char *)curcharptr, "четверг") == 0)){
+							day_id = 3;
+						}else if((strcmp((const char *)curcharptr, "friday") == 0 || strcmp((const char *)curcharptr, "пятницу") == 0)){
+							day_id = 4;
+						}else if((strcmp((const char *)curcharptr, "saturday") == 0 || strcmp((const char *)curcharptr, "субботу") == 0)){
+							day_id = 5;
+						}else if((strcmp((const char *)curcharptr, "sunday") == 0 || strcmp((const char *)curcharptr, "воскресенье") == 0)){
+							day_id = 6;
+						};
+						
+						if(day_id != -1)
+						{
+							if(day_id<=today_day_id)
+								day_id += 7;
+							
+							date += (day_id - today_day_id) * 24 * 3600;
+							
+						} else {
+							strcpy(answer, "Неизвестный день недели.");
+							log_out(LOG_CATEGORY_FUNC_CALL, "schedule() exited");
+							return answer;
+						}
+					} else {
+						strcpy(answer, "Некорректный спецификатор даты.");
+						log_out(LOG_CATEGORY_FUNC_CALL, "schedule() exited");
+						return answer;
+					}					
+				}
+			}
 		}
 		
 		if(!groupId[0]){
@@ -713,27 +741,31 @@ static char* schedule(const char *command, char *answer){
 		
 
 	        char buffer[5120], out[5120];
-	        get_schedule_json(groupId, &buffer[0], date);
-	        decode_utf_literals(&buffer[0], &out[0]);
-	        data data;
-	        int lessons = parse_json(out, &data);
+	        if(!get_schedule_json(groupId, &buffer[0], date)){
+				strcpy(answer, "Ошибка получения данных. Пожалуйста, повторите позже.");
+			} else {
+			
+				decode_utf_literals(&buffer[0], &out[0]);
+				data data;
+				int lessons = parse_json(out, &data);
 
-	        if (lessons == -1) {
-	            strcpy(answer, "Недопустимый номер группы");
-	        } else if (lessons == 0) {
-	            sprintf(answer, "%s, %d неделя<br>Группа: %s<br><br>", data.day, data.week_number, data.group_id);
-	            strcat(answer, "<br>Нет занятий");
-	        } else {
-	            sprintf(answer, "%s, %d неделя<br>Группа: %s<br><br>", data.day, data.week_number, data.group_id);
-	            sprintf(answer, "%s_______________________________<br>", answer);
-	            for (int i = 0; i < lessons - 1; i++) {
-	                if (i) {
-	                    sprintf(answer, "%s_______________________________<br>", answer);
-	                }
-	                sprintf(answer, "%s%s %s - %s<br>%s<br>", answer, data.lessons[i].time, data.lessons[i].place, data.lessons[i].person_name, data.lessons[i].subject);
-	                //sprintf(answer, "%s_______________________________<br>", answer);
-	            }
-	        }
+				if (lessons == -1) {
+					strcpy(answer, "Недопустимый номер группы");
+				} else if (lessons == 0) {
+					sprintf(answer, "%s, %d неделя<br>Группа: %s<br><br>", data.day, data.week_number, data.group_id);
+					strcat(answer, "<br>Нет занятий");
+				} else {
+					sprintf(answer, "%s, %d неделя<br>Группа: %s<br><br>", data.day, data.week_number, data.group_id);
+					sprintf(answer, "%s_______________________________<br>", answer);
+					for (int i = 0; i < lessons - 1; i++) {
+						if (i) {
+							sprintf(answer, "%s_______________________________<br>", answer);
+						}
+						sprintf(answer, "%s%s %s - %s<br>%s<br>", answer, data.lessons[i].time, data.lessons[i].place, data.lessons[i].person_name, data.lessons[i].subject);
+						//sprintf(answer, "%s_______________________________<br>", answer);
+					}
+				}
+			}
 		}
 		
 		//DEBUG LOG OUTPUT
@@ -848,7 +880,7 @@ static void init_commands_table()
 	COMMANDS_TABLE_ENTRY("help", help);
 	COMMANDS_TABLE_ENTRY("помощь", help);
 	COMMANDS_TABLE_ENTRY("!help", help);
-        COMMANDS_TABLE_ENTRY("?", help);
+	COMMANDS_TABLE_ENTRY("?", help);
 	
 	COMMANDS_TABLE_ENTRY("stat", stat);
 	COMMANDS_TABLE_ENTRY("стат", stat);
@@ -856,7 +888,7 @@ static void init_commands_table()
 	COMMANDS_TABLE_ENTRY("лог", show_log_tail);
 	COMMANDS_TABLE_ENTRY("log", show_log_tail);
 
-        COMMANDS_TABLE_ENTRY("ссылка", show_schedule_link);
+	COMMANDS_TABLE_ENTRY("ссылка", show_schedule_link);
 	COMMANDS_TABLE_ENTRY("link", show_schedule_link);
 }
 
