@@ -688,7 +688,7 @@ static char* schedule(const char *command, char *answer){
 			
 			if(endcharptr){
 			
-				//curcharptr = endcharptr + 1;
+				curcharptr = endcharptr + 1;
 				
 				while(*curcharptr == ' '){
 					curcharptr++;
