@@ -63,7 +63,7 @@ static PurpleAccount *globalAccount;
 #define LOG_CATEGORY_FUNC_CALL 0x2
 #define LOG_CATEGORY_INCOMING 0x4
 #define LOG_CATEGORY_CMDCALL 0x8
-#define LOG_CATEGORY_ERROR 0xF
+#define LOG_CATEGORY_ERROR 0x10
 
 #define LOG_CATEGORY_ALL 0xFFFFFFFF
 
@@ -122,7 +122,7 @@ const char* log_categories_names[]={
 	"- general - ", //LOG_CATEGORY_GENERAL
 	"- func call - ", //LOG_CATEGORY_FUNC_CALL
 	"- incoming - ", //LOG_CATEGORY_INCOMING
-        "- cmdcall - ", //LOG_CATEGORY_INCOMING
+        "- cmdcall - ", //LOG_CATEGORY_CMDCALL
         "- error - " //LOG_CATEGORY_ERROR
 };
 
@@ -191,14 +191,15 @@ int min(int a, int b){
 
 
 static char day_of_week[][23]={
-	"Воскресенье",
+    "Воскресенье",
     "Понедельник",
     "Вторник",
     "Среда",
     "Четверг",
     "Пятница",
     "Суббота",
-    "Воскресенье"
+    "Воскресенье",
+    "asd"
 };
 
 typedef struct _PurpleGLibIOClosure {
@@ -465,9 +466,10 @@ static char * get_schedule_json(const char* group_id, char *buffer, time_t date 
 	struct tm *dateInfo;
 
     if (!(curl = curl_easy_init())) {
-		log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() exited");
-		return NULL;
-	}
+        log_out(LOG_CATEGORY_ERROR, "get_schedule_json() CURL_CANT_INIT");
+        log_out(LOG_CATEGORY_FUNC_CALL, "get_schedule_json() exited");
+        return NULL;
+    }
 
 	if(!date){
 		date = time(NULL);
@@ -493,6 +495,7 @@ static char * get_schedule_json(const char* group_id, char *buffer, time_t date 
 	
 	if(res){
 		//something goes wrong
+		log_out(LOG_CATEGORY_ERROR, "get_schedule_json() CURL_DATASOURCE_404");
 		buffer = NULL;
 	} else {
 		//everything is ok
@@ -576,35 +579,35 @@ static int parse_json(const char *json_data, data *data) {
 
     char *startptr, *endptr, statusSymbol;
     startptr = strstr(json_data, "status");
-	statusSymbol = startptr[9];
-	if(statusSymbol == 'w')
-	{
+    statusSymbol = startptr[9];
+    if(statusSymbol == 'w')
+    {
         log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
-		return -1;
-	}
-	
-	
+        return -1;
+    }
+
+
     startptr = strstr(json_data, "week_number");
     data->week_number = (int)strtol(startptr+13,NULL,10);
     startptr = strstr(startptr, "day");
     strcpy(data->day, day_of_week[(int)strtol(startptr+6,NULL,10)]);
-	
+
     startptr = strstr(startptr, "group");
-	startptr += 8;
-	endptr = strstr(startptr, "\"");
-	memcpy(data->group_id, startptr, endptr - startptr);
-	
-	if(statusSymbol == 'n')
-	{
-		log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
-		return 0;
-	}
+    startptr += 8;
+    endptr = strstr(startptr, "\"");
+    memcpy(data->group_id, startptr, endptr - startptr);
+
+    if(statusSymbol == 'n')
+    {
+        log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
+        return 0;
+    }
 
     for(int i = 0; i < 8; i++) {
         //time
         startptr = strstr(startptr, "time");
         if( startptr == NULL ) {
-			log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
+            log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
             return i+1;
         }
         endptr = strstr(startptr, "place");
@@ -627,7 +630,7 @@ static int parse_json(const char *json_data, data *data) {
         data->lessons[i].person_name[endptr-startptr-15] = 0;
     }
 
-        log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
+    log_out(LOG_CATEGORY_FUNC_CALL, "parse_json() exited");
     return 8;
 }
 
@@ -649,47 +652,43 @@ static char* version(const char *command, char *answer){
 }
 
 static char* schedule(const char *command, char *answer){
-		//DEBUG LOG OUTPUT
-		log_out(LOG_CATEGORY_FUNC_CALL, "schedule() called");
+    //DEBUG LOG OUTPUT
+    log_out(LOG_CATEGORY_FUNC_CALL, "schedule() called");
 
     char* answer_start_ptr = answer;
 
-		/*
-			New version supports ONLY base syntax:
-			schedule <group_id, required> [date spec, optional]
-		*/
-		
-		requests_schedule_count++;
 
-		char *curcharptr = (char *)command;
-		
-		const int max_group_id_length = 10;
-		char groupId[max_group_id_length + 1] = "";
-		
-        time_t date;
-        time(&date);
-        struct tm *dateinfo = localtime(&date);
-		
-        gboolean is_tomorrow = FALSE;
-		
-		curcharptr = strstr((const char *)curcharptr, " "); //need be checked for 0
-		if(curcharptr){
-			curcharptr++;
-		
-			int cmd_group_id_length = strlen(curcharptr) < max_group_id_length ? strlen(curcharptr) : max_group_id_length;
-			
-			char *endcharptr = strstr((const char *)curcharptr, " ");
-			
-			if(endcharptr && (curcharptr + cmd_group_id_length > endcharptr))
-				cmd_group_id_length = endcharptr - curcharptr;
-				
-			memcpy(groupId, curcharptr, cmd_group_id_length);
-			groupId[cmd_group_id_length] = 0;
-			
-			if(endcharptr){
-			
-				curcharptr = endcharptr + 1;
-				
+
+    requests_schedule_count++;
+
+    char *curcharptr = (char *)command;
+
+    const int max_group_id_length = 10;
+    char groupId[max_group_id_length + 1] = "";
+
+    time_t date;
+    time(&date);
+    struct tm *dateinfo = localtime(&date);
+
+    gboolean is_tomorrow = FALSE;
+
+    curcharptr = strstr((const char *)curcharptr, " "); //need be checked for 0
+    if(curcharptr){
+        curcharptr++;
+
+        int cmd_group_id_length = strlen(curcharptr) < max_group_id_length ? strlen(curcharptr) : max_group_id_length;
+
+        char *endcharptr = strstr((const char *)curcharptr, " ");
+
+        if(endcharptr && (curcharptr + cmd_group_id_length > endcharptr))
+            cmd_group_id_length = endcharptr - curcharptr;
+            memcpy(groupId, curcharptr, cmd_group_id_length);
+            groupId[cmd_group_id_length] = 0;
+
+            if(endcharptr){
+
+                curcharptr = endcharptr + 1;
+
 				while(*curcharptr == ' '){
 					curcharptr++;
 				}
@@ -748,12 +747,13 @@ static char* schedule(const char *command, char *answer){
                     date_info = localtime(&date);
                     strftime(date_str, 11, "%d.%m.%Y", date_info);
                     char log_str[100];
-                    sprintf(&log_str[0], "schedule - group: %s | date: %s", groupId, date_str);
+                    sprintf(&log_str[0], "schedule group: %s | date: %s", groupId, date_str);
                     log_out(LOG_CATEGORY_CMDCALL, log_str);
 
 	        char buffer[5120], out[5120];
 	        if(!get_schedule_json(groupId, &buffer[0], date)){
-				strcpy(answer, "Ошибка получения данных. Пожалуйста, повторите позже.");
+                log_out(LOG_CATEGORY_ERROR, "schedule()  DATA_RECEIVE_FAIL");
+                strcpy(answer, "Ошибка получения данных. Пожалуйста, повторите позже.");
 			} else {
 			
 				decode_utf_literals(&buffer[0], &out[0]);
@@ -824,6 +824,7 @@ static char* stat(const char *command, char *answer){
 }
 
 static char* show_log_tail(const char *command, char *answer){
+    return answer;
     char* answer_start_ptr = answer;
 	if(!log_file_name[0]){
 		strcpy(answer, "Файловое логирование отключено");
@@ -898,8 +899,8 @@ static void init_commands_table()
 	COMMANDS_TABLE_ENTRY("stat", stat);
 	COMMANDS_TABLE_ENTRY("стат", stat);
 	
-	COMMANDS_TABLE_ENTRY("лог", show_log_tail);
-	COMMANDS_TABLE_ENTRY("log", show_log_tail);
+    //COMMANDS_TABLE_ENTRY("лог", show_log_tail);
+    //COMMANDS_TABLE_ENTRY("log", show_log_tail);
 
 	COMMANDS_TABLE_ENTRY("ссылка", show_schedule_link);
 	COMMANDS_TABLE_ENTRY("link", show_schedule_link);
@@ -1016,12 +1017,11 @@ int main(int argc, char *argv[]) {
     const int optIcgPass = 0x2;
     const int optLogFile = 0x4;
     const int optLogConsole = 0x8;
-    const int optLogLevel = 0xF;
-	const int optDatasourceUrl = 0x10;
-	const int optDatasourceUrlParams = 0x20;
-	
-	
-	int required_options = optIcgLogin | optIcgPass | optDatasourceUrl;
+    const int optLogLevel = 0x10;
+    const int optDatasourceUrl = 0x20;
+    const int optDatasourceUrlParams = 0x40;
+
+    int required_options = optIcgLogin | optIcgPass | optDatasourceUrl;
 
     static struct option long_options[] = {
         {"icq.login", required_argument, 0, optIcgLogin},
@@ -1029,23 +1029,23 @@ int main(int argc, char *argv[]) {
         {"log.file", required_argument, 0, optLogFile},
         {"log.console", no_argument, 0, optLogConsole},
         {"log.level", required_argument, 0, optLogLevel},
-		{"datasource.url", required_argument, 0, optDatasourceUrl},
-		{"datasource.url.params", required_argument, 0, optDatasourceUrlParams}
+        {"datasource.url", required_argument, 0, optDatasourceUrl},
+        {"datasource.url.params", required_argument, 0, optDatasourceUrlParams}
     };
 
     int option_index = 0;
 
     int c = -1;
-	
+
     while ((c = getopt_long(argc, argv, "", long_options, &option_index)) != -1) {
         switch (c) {
             case optIcgLogin:
                 strcpy(&uin[0], optarg);
-				required_options &= ~optIcgLogin;
+                required_options &= ~optIcgLogin;
                 break;
             case optIcgPass:
                 strcpy(&password[0], optarg);
-				required_options &= ~optIcgPass;
+                required_options &= ~optIcgPass;
                 break;
             case optLogFile:
                 log_init(optarg);
@@ -1068,15 +1068,21 @@ int main(int argc, char *argv[]) {
                     if(strstr(optarg, "g")) {
                         LogCategories |= LOG_CATEGORY_GENERAL;
                     }
+                    if(strstr(optarg, "c")) {
+                        LogCategories |= LOG_CATEGORY_CMDCALL;
+                    }
+                    if(strstr(optarg, "e")) {
+                        LogCategories |= LOG_CATEGORY_ERROR;
+                    }
                 }
                 break;
-			case optDatasourceUrl:
-				strcpy(datasource_url, optarg);
-				required_options &= ~optDatasourceUrl;
-				break;
-			case optDatasourceUrlParams:
-				strcpy(datasource_url_params, optarg);
-				break;
+            case optDatasourceUrl:
+                strcpy(datasource_url, optarg);
+                required_options &= ~optDatasourceUrl;
+                break;
+            case optDatasourceUrlParams:
+                strcpy(datasource_url_params, optarg);
+                break;
         }
     }
 	
