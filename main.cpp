@@ -644,7 +644,7 @@ static char* date_time(const char *command, char *answer){
 
 static char* version(const char *command, char *answer){
     char* answer_start_ptr = answer;
-	strcpy(answer, "Версия: 0.3, билд от 23.09.2009");
+	strcpy(answer, "Версия: 0.3.1, билд от 24.09.2009");
 	return answer_start_ptr;
 }
 
@@ -811,6 +811,8 @@ static char* help(const char *command, char *answer){
 					"Вы можете связаться с разработчиками по e-mail:<br>"
 					" denis.bykov@cleancode.ru<br>"
 					" chuyko.yury@cleancode.ru"
+					"Свежая информация: http://twitter.com/itmobot"
+					//"Группа вконтакте: http://vkontakte.ru/club11869638"
 					);
 	return answer_start_ptr;
 }
