@@ -648,7 +648,7 @@ static char* date_time(const char *command, char *answer){
 static char* version(const char *command, char *answer){
     char* answer_start_ptr = answer;
 	strcpy(answer, "Версия: 0.3.1, билд от 24.09.2009<br>");
-	strcpy(answer, "Свежая информация: http://twitter.com/Itmobot");
+	strcat(answer, "Свежая информация: http://twitter.com/Itmobot");
 	return answer_start_ptr;
 }
 
